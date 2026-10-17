@@ -57,6 +57,7 @@ section.card{background:var(--surface);border:1px solid var(--line);border-radiu
 .btn:hover{border-color:var(--muted)}
 .btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
 .btn.small{padding:5px 10px;min-height:32px;font-size:.88rem}
+.btn.primary .muted{color:inherit;opacity:.8}
 .btn.ghost{background:transparent}
 .btn.danger{color:var(--loss);border-color:var(--loss);background:transparent}
 .btn:disabled{opacity:.45;cursor:not-allowed}
@@ -85,8 +86,8 @@ header.top{display:flex;align-items:flex-end;justify-content:space-between;gap:1
 nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:20;background:var(--surface);border-top:1px solid var(--line);
   display:flex;justify-content:center;padding-bottom:env(safe-area-inset-bottom,0px);
   padding-left:env(safe-area-inset-left,0px);padding-right:env(safe-area-inset-right,0px)}
-nav.tabs .in{display:grid;grid-template-columns:repeat(5,1fr);width:100%;max-width:720px}
-.tab{background:none;border:0;padding:10px 2px 9px;font-family:var(--display);font-weight:800;font-size:1rem;letter-spacing:.04em;color:var(--muted);cursor:pointer;text-transform:uppercase;position:relative}
+nav.tabs .in{display:grid;grid-template-columns:repeat(6,1fr);width:100%;max-width:720px}
+.tab{background:none;border:0;padding:10px 2px 9px;font-family:var(--display);font-weight:800;font-size:.92rem;letter-spacing:.02em;color:var(--muted);cursor:pointer;text-transform:uppercase;position:relative}
 .tab[aria-current="page"]{color:var(--ink)}
 .tab[aria-current="page"]::before{content:"";position:absolute;left:22%;right:22%;top:0;height:3px;background:var(--accent);border-radius:0 0 3px 3px}
 .tab .dot{position:absolute;top:8px;right:18%;width:8px;height:8px;border-radius:50%;background:var(--loss)}
@@ -149,6 +150,7 @@ details>summary::-webkit-details-marker{display:none}
   <button class="tab" data-tab="oggi">Oggi</button>
   <button class="tab" data-tab="formazione">Quintetto</button>
   <button class="tab" data-tab="asta">Asta</button>
+  <button class="tab" data-tab="mercato">Mercato</button>
   <button class="tab" data-tab="classifica">Classifica</button>
   <button class="tab" data-tab="lega">Lega</button>
 </div></nav>
@@ -192,7 +194,8 @@ const S = {
   sess: store.get("fantanba.sess"),
   tab: store.get("fantanba.tab") || "oggi",
   league: null, teams: [], roster: [], auction: null, bids: [], standings: [],
-  players: new Map(), last: new Map(), cur: new Map(),
+  players: new Map(), last: new Map(), cur: new Map(), values: new Map(),
+  mk: { give: [], get: [], tradeTo: "", givec: 0, getc: 0, msg: "", fa: null, faAmt: "", faDrop: "", rel: null, newTrade: false, faSearch: "", faCourt: "" },
   day: null, lineupDate: null, lineup: null, openMatch: null,
   search: "", court: "", onlyFree: true,
 };
@@ -261,15 +264,17 @@ async function loadStatic() {
 }
 async function loadLeague() {
   const id = S.sess.league_id;
-  const [lg, teams, roster, auction, st] = await Promise.all([
+  const [lg, teams, roster, vals, auction, st] = await Promise.all([
     q(sb.from("leagues").select("*").eq("id", id).maybeSingle()),
     q(sb.from("teams").select("*").eq("league_id", id).order("sort_order")),
-    q(sb.from("roster").select("*").eq("league_id", id)),
+    q(sb.from("roster").select("*").eq("league_id", id).not("team_id", "is", null)),
+    q(sb.from("player_values").select("player_id,value,fp").eq("league_id", id).limit(2000)),
     q(sb.from("auction").select("*").eq("league_id", id).maybeSingle()),
     q(sb.from("standings").select("*").eq("league_id", id)),
   ]);
   if (!lg) throw new Error("Lega non trovata");
   S.league = lg; S.teams = teams; S.roster = roster; S.auction = auction; S.standings = st;
+  S.values = new Map(vals.map((v) => [v.player_id, v]));
 }
 async function loadBids() {
   const a = S.auction; if (!a?.player_id) { S.bids = []; return; }
@@ -290,9 +295,13 @@ function subscribe() {
       await loadBids(); if (S.tab === "asta") render(); else renderTabs();
     })
     .on("postgres_changes", { event: "*", schema: "public", table: "bids", filter: f }, () => soon(async () => { await loadBids(); if (S.tab === "asta") render(); }))
-    .on("postgres_changes", { event: "*", schema: "public", table: "roster", filter: f }, () => soon(async () => { S.roster = await q(sb.from("roster").select("*").eq("league_id", id)); render(); }))
+    .on("postgres_changes", { event: "*", schema: "public", table: "roster", filter: f }, () => soon(async () => { S.roster = await q(sb.from("roster").select("*").eq("league_id", id).not("team_id", "is", null)); render(); }))
     .on("postgres_changes", { event: "*", schema: "public", table: "teams", filter: f }, () => soon(async () => { await loadLeague(); render(); }))
     .on("postgres_changes", { event: "UPDATE", schema: "public", table: "leagues", filter: `id=eq.${id}` }, () => soon(async () => { await loadLeague(); render(); }))
+    .on("postgres_changes", { event: "*", schema: "public", table: "trades", filter: f }, (p) => { if (p.new?.to_team === S.sess.team_id && p.new.status === "pending") toast("Nuova proposta di scambio da " + teamName(p.new.from_team)); soon(() => { if (S.tab === "mercato") render(); else renderTabs(); }); })
+    .on("postgres_changes", { event: "*", schema: "public", table: "transactions", filter: f }, () => soon(async () => { if (S.tab === "mercato") render(); }))
+    .on("postgres_changes", { event: "*", schema: "public", table: "market_windows", filter: f }, () => soon(async () => { if (S.tab === "mercato") render(); }))
+    .on("postgres_changes", { event: "*", schema: "public", table: "player_values", filter: f }, () => soon(async () => { const v = await q(sb.from("player_values").select("player_id,value,fp").eq("league_id", id).limit(2000)); S.values = new Map(v.map((x) => [x.player_id, x])); if (S.tab === "mercato") render(); }))
     .on("postgres_changes", { event: "*", schema: "public", table: "team_scores", filter: f }, () => soon(async () => { S.standings = await q(sb.from("standings").select("*").eq("league_id", id)); if (S.tab === "oggi" || S.tab === "classifica") render(); }))
     .subscribe();
 }
@@ -327,6 +336,7 @@ async function render() {
     else if (S.tab === "formazione") app.innerHTML = await formazioneView();
     else if (S.tab === "asta") app.innerHTML = astaView();
     else if (S.tab === "classifica") app.innerHTML = await classificaView();
+    else if (S.tab === "mercato") app.innerHTML = await mercatoView();
     else app.innerHTML = legaView();
   } catch (e) { app.innerHTML = head("Ops") + `<section class="card">${esc(e.message)}</section>`; }
   bindCommon(); tick();
@@ -496,7 +506,6 @@ async function formazioneView() {
     ${group("BC", "Back court · guardie")}${group("FC", "Front court · ali e centri")}
     <p class="muted" style="margin:0">Se un titolare non gioca, entra il primo panchinaro dello stesso reparto (Pan 1, poi Pan 2…).</p>
     <div class="sticky-save"><button class="btn primary" style="width:100%" data-act="save-lineup" ${locked || !d ? "disabled" : ""}>${locked ? "Giornata già iniziata" : "Salva quintetto"}</button></div>
-    ${S.league.status === "season" ? releaseBox(mine) : ""}
   </div>`;
 }
 function releaseBox(mine) {
@@ -630,13 +639,129 @@ async function classificaView() {
   </div>`;
 }
 
+/* ---------- MERCATO ---------- */
+const val = (id) => S.values.get(id)?.value ?? 1;
+const relPct = () => +((R().market || {}).release_pct ?? 90);
+const refundOf = (id) => Math.round((val(id) * relPct()) / 100);
+const pname = (id) => esc(P(id).name);
+function txText(t) {
+  const d = t.detail || {}, tm = `<b>${esc(teamName(t.team_id))}</b>`;
+  switch (t.kind) {
+    case "auction": return `${tm} prende ${pname(d.player_id)} all'asta per ${d.price}`;
+    case "release": return `${tm} rilascia ${pname(d.player_id)} e incassa ${d.refund}`;
+    case "free_agent": return `${tm} firma ${pname(d.player_id)} per ${d.price}${d.dropped ? ` (rilascia ${pname(d.dropped)})` : ""}`;
+    case "trade": return `Scambio: <b>${esc(teamName(d.from_team))}</b> dà ${(d.give_players || []).map(pname).join(", ")}${d.give_credits ? ` + ${d.give_credits} cr` : ""} a <b>${esc(teamName(d.to_team))}</b> per ${(d.get_players || []).map(pname).join(", ")}${d.get_credits ? ` + ${d.get_credits} cr` : ""}`;
+    case "window_closed": return `Finestra di mercato chiusa · acquisti dalle buste: ${d.signed}`;
+    case "admin_assign": return `Admin: ${pname(d.player_id)} assegnato a ${tm}`;
+    case "admin_remove": return `Admin: ${pname(d.player_id)} tolto a ${tm}`;
+    default: return esc(t.kind);
+  }
+}
+async function mercatoView() {
+  const lid = S.sess.league_id, my = S.sess.team_id, M = S.mk, ro = R().roster || {};
+  const [wins, trades, tx, myBids] = await Promise.all([
+    q(sb.from("market_windows").select("*").eq("league_id", lid).neq("status", "cancelled").order("opens_at", { ascending: false }).limit(10)),
+    q(sb.from("trades").select("*").eq("league_id", lid).or(`from_team.eq.${my},to_team.eq.${my}`).order("id", { ascending: false }).limit(20)),
+    q(sb.from("transactions").select("*").eq("league_id", lid).order("id", { ascending: false }).limit(25)),
+    rpc("my_fa_bids", { p_token: S.sess.token }),
+  ]);
+  const t = now();
+  const open = wins.find((w) => w.status === "scheduled" && new Date(w.opens_at) <= t && new Date(w.closes_at) > t);
+  const next = wins.filter((w) => w.status === "scheduled" && new Date(w.opens_at) > t).sort((a, b) => a.opens_at.localeCompare(b.opens_at))[0];
+  const mine = rosterOf(my).map((r) => ({ ...P(r.player_id), price: r.price }));
+  const full = mine.length >= (+ro.size || 10);
+
+  // finestra
+  const toLocal = (d) => { const z = new Date(d.getTime() - d.getTimezoneOffset() * 60000); return z.toISOString().slice(0, 16); };
+  const winBox = `<section class="board"><div class="label">Finestra di mercato</div>
+    <div class="mid" style="margin-top:6px">${open ? "Aperta" : "Chiusa"}</div>
+    <p style="opacity:.8;margin:6px 0 0">${open ? `Si chiude ${fmtDT(open.closes_at)}. Puoi rilasciare giocatori e fare offerte segrete sui free agent: a chiusura vince l'offerta più alta.` : next ? `Prossima apertura ${fmtDT(next.opens_at)}, chiusura ${fmtDT(next.closes_at)}.` : "Nessuna finestra in programma. Gli scambi tra squadre sono sempre aperti."}</p></section>
+    ${isAdmin() ? `<section class="card stack"><div class="label">Gestione finestre (admin)</div>
+      ${open ? `<div class="row"><button class="btn" data-act="win-close" data-wid="${open.id}">Chiudi ora e assegna le buste</button><button class="btn danger" data-act="win-cancel" data-wid="${open.id}">Annulla finestra</button></div>` : ""}
+      ${next ? `<div class="row"><span class="grow muted">Programmata: ${fmtDT(next.opens_at)} → ${fmtDT(next.closes_at)}</span><button class="btn small danger" data-act="win-cancel" data-wid="${next.id}">Annulla</button></div>` : ""}
+      <div class="grid2"><label class="field"><span class="muted" style="font-size:.85rem">Apertura</span><input type="datetime-local" id="win-open" value="${toLocal(new Date(t))}"></label>
+      <label class="field"><span class="muted" style="font-size:.85rem">Chiusura</span><input type="datetime-local" id="win-close" value="${toLocal(new Date(t + 3 * 864e5))}"></label></div>
+      <div class="row"><button class="btn primary" data-act="win-create">Programma finestra</button><button class="btn" data-act="recompute">Ricalcola quotazioni</button></div>
+      <p class="muted" style="margin:0;font-size:.85rem">Le buste vengono assegnate in automatico entro 5 minuti dalla chiusura.</p></section>` : ""}`;
+
+  // scambi
+  const pend = trades.filter((x) => x.status === "pending");
+  const inc = pend.filter((x) => x.to_team === my), out = pend.filter((x) => x.from_team === my);
+  const tradeLine = (x) => `<div><b>${esc(teamName(x.from_team))}</b> dà ${x.give_players.map(pname).join(", ")}${x.give_credits ? ` + <b>${x.give_credits} cr</b>` : ""}<br><b>${esc(teamName(x.to_team))}</b> dà ${x.get_players.map(pname).join(", ")}${x.get_credits ? ` + <b>${x.get_credits} cr</b>` : ""}${x.message ? `<div class="muted">“${esc(x.message)}”</div>` : ""}</div>`;
+  const others = S.teams.filter((x) => x.id !== my);
+  if (M.tradeTo && !others.some((x) => x.id === M.tradeTo)) M.tradeTo = "";
+  const theirs = M.tradeTo ? rosterOf(M.tradeTo).map((r) => P(r.player_id)) : [];
+  const pick = (list, side) => list.map((p) => `<button class="btn small ${M[side].includes(p.id) ? "primary" : ""}" data-tg="${side}" data-id="${p.id}">${courtChip(p)} ${esc(p.name)} <span class="muted num">${val(p.id)}</span></button>`).join("");
+  const sumv = (ids) => ids.reduce((a, id) => a + val(id), 0);
+  const builder = M.newTrade ? `<div class="stack" style="border-top:1px solid var(--line);padding-top:12px">
+      <label class="field"><span class="label">Con chi</span><select id="tr-team"><option value="">Scegli squadra</option>${others.map((x) => `<option value="${x.id}" ${x.id === M.tradeTo ? "selected" : ""}>${esc(x.name)}</option>`).join("")}</select></label>
+      <div><div class="label" style="margin-bottom:6px">Dai (almeno 1)</div><div class="row">${pick(mine, "give") || '<span class="muted">Rosa vuota</span>'}</div></div>
+      ${M.tradeTo ? `<div><div class="label" style="margin-bottom:6px">Ricevi (almeno 1)</div><div class="row">${pick(theirs, "get") || '<span class="muted">Rosa vuota</span>'}</div></div>` : ""}
+      <div class="grid2"><label class="field"><span class="muted" style="font-size:.85rem">Crediti che aggiungi tu</span><input id="tr-givec" type="number" min="0" value="${M.givec || ""}" placeholder="0"></label>
+      <label class="field"><span class="muted" style="font-size:.85rem">Crediti che chiedi</span><input id="tr-getc" type="number" min="0" value="${M.getc || ""}" placeholder="0"></label></div>
+      <input id="tr-msg" placeholder="Messaggio (facoltativo)" value="${esc(M.msg)}">
+      <div class="muted num" id="tr-sum" style="font-size:.85rem">Quotazioni: dai ${sumv(M.give)} + ${+M.givec || 0} cr · ricevi ${sumv(M.get)} + ${+M.getc || 0} cr</div>
+      <button class="btn primary" data-act="send-trade" ${M.give.length && M.get.length && M.tradeTo ? "" : "disabled"}>Invia proposta</button></div>` : "";
+  const tradesBox = `<section class="card stack"><div class="row between"><div class="label">Scambi</div><button class="btn small" data-act="new-trade">${M.newTrade ? "Chiudi" : "Nuova proposta"}</button></div>
+    ${inc.map((x) => `<div class="stack" style="border-top:1px solid var(--line);padding-top:10px"><span class="chip on" style="align-self:flex-start">Per te</span>${tradeLine(x)}<div class="row"><button class="btn primary small" data-act="tr-accept" data-tid="${x.id}">Accetta</button><button class="btn small" data-act="tr-reject" data-tid="${x.id}">Rifiuta</button></div></div>`).join("")}
+    ${out.map((x) => `<div class="stack" style="border-top:1px solid var(--line);padding-top:10px"><span class="chip" style="align-self:flex-start">In attesa di risposta</span>${tradeLine(x)}<div class="row"><button class="btn small" data-act="tr-cancel" data-tid="${x.id}">Ritira proposta</button></div></div>`).join("")}
+    ${!inc.length && !out.length && !M.newTrade ? '<div class="muted">Nessuna proposta in corso. Puoi proporre uno scambio in qualsiasi momento.</div>' : ""}
+    ${builder}
+    ${trades.filter((x) => x.status !== "pending").slice(0, 5).map((x) => `<div class="muted" style="font-size:.85rem;border-top:1px solid var(--line);padding-top:8px">${{ accepted: "Accettato", rejected: "Rifiutato", cancelled: "Ritirato", failed: "Non riuscito" }[x.status]}: ${esc(teamName(x.from_team))} ↔ ${esc(teamName(x.to_team))}${x.note ? ` (${esc(x.note)})` : ""}</div>`).join("")}
+  </section>`;
+
+  // la mia rosa con quotazioni
+  const rosaBox = `<section class="card"><div class="label">La tua rosa · pagato → quotazione oggi</div><div class="list">${mine.sort((a, b) => val(b.id) - val(a.id)).map((p) => {
+    const v = val(p.id), diff = v - p.price;
+    return `<div class="item">${courtChip(p)}<div class="grow" style="min-width:0"><div class="ellipsis" style="font-weight:700">${esc(p.name)} ${injChip(p)}</div>
+      <div class="muted num" style="font-size:.85rem">${p.price} → <b style="color:var(--ink)">${v}</b> <span style="color:${diff >= 0 ? "var(--win)" : "var(--loss)"}">${diff >= 0 ? "+" : ""}${diff}</span></div></div>
+      ${open ? (M.rel === p.id ? `<button class="btn small danger" data-act="rel-yes" data-pid="${p.id}">Conferma +${refundOf(p.id)}</button><button class="btn small" data-act="rel-no">No</button>` : `<button class="btn small" data-act="rel-ask" data-pid="${p.id}">Rilascia +${refundOf(p.id)}</button>`) : ""}</div>`;
+  }).join("") || '<div class="empty">Rosa vuota</div>'}</div>
+  <p class="muted" style="margin:8px 0 0;font-size:.85rem">Rilasciando incassi il ${relPct()}% della quotazione del giorno. Le quotazioni si aggiornano ogni mattina in base alle prestazioni.</p></section>`;
+
+  // buste
+  const stLbl = { active: "In attesa", won: "Vinta", lost: "Persa", invalid: "Non valida" };
+  const bidsBox = myBids.length ? `<section class="card"><div class="label">Le tue buste</div><div class="list">${myBids.map((b) => `<div class="item"><div class="grow" style="min-width:0"><div class="ellipsis" style="font-weight:700">${pname(b.player_id)} · <span class="num">${b.amount}</span></div>
+    <div class="muted" style="font-size:.85rem">${b.drop_player_id ? `se vinci rilasci ${pname(b.drop_player_id)}` : "senza rilascio"}${b.note ? ` · ${esc(b.note)}` : ""}</div></div>
+    <span class="chip ${b.status === "won" ? "win" : b.status === "active" ? "" : "inj"}">${stLbl[b.status] || b.status}</span>
+    ${b.status === "active" && open ? `<button class="btn small" data-act="fa-edit" data-pid="${b.player_id}" data-amt="${b.amount}" data-drop="${b.drop_player_id || ""}">Modifica</button><button class="btn small danger" data-act="fa-withdraw" data-wd="${b.id}">Ritira</button>` : ""}</div>`).join("")}</div></section>` : "";
+
+  // free agent
+  let faBox = "";
+  if (open) {
+    const taken = new Set(S.roster.map((r) => r.player_id)), qs = M.faSearch.toLowerCase();
+    let list = [...S.players.values()].filter((p) => p.active && p.team_abbr && !taken.has(p.id));
+    if (M.faCourt) list = list.filter((p) => p.court === M.faCourt);
+    if (qs) list = list.filter((p) => p.name.toLowerCase().includes(qs) || (p.team_abbr || "").toLowerCase() === qs);
+    list.sort((a, b) => val(b.id) - val(a.id) || estFp(b.id) - estFp(a.id));
+    faBox = `<section class="card stack"><div class="label">Free agent · offerta minima = quotazione</div>
+      <div class="row"><input id="fa-search" class="grow" style="width:auto" placeholder="Cerca giocatore o squadra" value="${esc(M.faSearch)}">
+      <div class="seg"><button class="${!M.faCourt ? "on" : ""}" data-fac="">Tutti</button><button class="${M.faCourt === "BC" ? "on" : ""}" data-fac="BC">BC</button><button class="${M.faCourt === "FC" ? "on" : ""}" data-fac="FC">FC</button></div></div>
+      <div class="list">${list.slice(0, 25).map((p) => {
+        const v = val(p.id), isOpen = M.fa === p.id;
+        return `<div class="item" style="flex-wrap:wrap">${avatar(p)}<div class="grow" style="min-width:0"><div class="ellipsis" style="font-weight:700">${esc(p.name)}</div>
+          <div class="row" style="gap:6px">${courtChip(p)}<span class="muted" style="font-size:.85rem">${esc(p.team_abbr)} · media ${r1(estFp(p.id))} pt</span>${injChip(p)}</div></div>
+          <div style="text-align:right"><div class="label">Quot.</div><div class="num" style="font-family:var(--display);font-weight:900;font-size:1.35rem">${v}</div></div>
+          ${isOpen ? `<div class="stack" style="width:100%">
+            <div class="grid2"><label class="field"><span class="muted" style="font-size:.85rem">La tua offerta (min ${v})</span><input id="fa-amt" type="number" min="${v}" value="${M.faAmt || v}"></label>
+            <label class="field"><span class="muted" style="font-size:.85rem">Se vinci rilasci ${full ? "(obbligatorio)" : "(facoltativo)"}</span><select id="fa-drop"><option value="">${full ? "Scegli…" : "Nessuno"}</option>${mine.map((m) => `<option value="${m.id}" ${M.faDrop === m.id ? "selected" : ""}>${esc(m.name)} (+${refundOf(m.id)})</option>`).join("")}</select></label></div>
+            <div class="row"><button class="btn primary" data-act="fa-send" data-pid="${p.id}">Metti in busta</button><button class="btn" data-act="fa-close">Annulla</button></div>
+            <span class="muted" style="font-size:.85rem">Nessuno vede la tua offerta. Puoi cambiarla fino alla chiusura.</span></div>` : `<button class="btn small primary" data-act="fa-open" data-pid="${p.id}">Offerta</button>`}</div>`;
+      }).join("") || '<div class="empty">Nessun free agent trovato</div>'}</div></section>`;
+  }
+
+  const txBox = `<section class="card"><div class="label">Movimenti della lega</div><div class="list">${tx.map((x) => `<div class="item" style="display:block"><div>${txText(x)}</div><div class="muted" style="font-size:.8rem">${fmtDT(x.created_at)}</div></div>`).join("") || '<div class="empty">Ancora nessun movimento</div>'}</div></section>`;
+
+  return head("Mercato", `Crediti: ${credits(my)} · rosa ${mine.length}/${ro.size}`) + `<div class="stack">${winBox}${tradesBox}${bidsBox}${faBox}${rosaBox}${txBox}</div>`;
+}
+
 /* ---------- LEGA ---------- */
 const RULE_FIELDS = [
   ["Punteggio per statistica", [["scoring.pts", "Punto segnato"], ["scoring.reb", "Rimbalzo"], ["scoring.ast", "Assist"], ["scoring.stl", "Palla rubata"], ["scoring.blk", "Stoppata"], ["scoring.tov", "Palla persa"], ["scoring.fg3m", "Tripla segnata (extra)"], ["scoring.fg_miss", "Tiro sbagliato"], ["scoring.ft_miss", "Libero sbagliato"], ["scoring.pf", "Fallo"]]],
   ["Bonus", [["bonus.double_double", "Doppia doppia"], ["bonus.triple_double", "Tripla doppia"]]],
   ["Rosa e quintetto", [["roster.size", "Giocatori in rosa"], ["roster.bc", "Di cui back court"], ["roster.fc", "Di cui front court"], ["roster.starters", "Titolari"], ["roster.min_bc_start", "Min BC titolari"], ["roster.min_fc_start", "Min FC titolari"], ["roster.max_per_nba_team", "Max per squadra NBA"]]],
   ["Crediti e asta", [["credits", "Crediti a testa"], ["auction.timer_seconds", "Timer chiamata (sec)"], ["auction.reset_seconds", "Tempo minimo dopo un rilancio (sec)"], ["auction.base_price", "Prezzo base"], ["auction.min_increment", "Rilancio minimo"], ["auction.turn_order", "Chiamate a turno", "bool"]]],
-  ["Capitano e mercato", [["captain.enabled", "Capitano attivo", "bool"], ["captain.multiplier", "Moltiplicatore capitano"], ["captain.per_week", "Capitani a settimana"], ["market.release_refund_pct", "Rimborso svincolo (%)"]]],
+  ["Capitano e mercato", [["captain.enabled", "Capitano attivo", "bool"], ["captain.multiplier", "Moltiplicatore capitano"], ["captain.per_week", "Capitani a settimana"], ["market.release_pct", "Rilascio: % della quotazione"], ["market.injury_out_discount", "Sconto quotazione se Out (%)"], ["market.blend_games", "Partite per pesare solo la stagione in corso"]]],
   ["Playoff", [["playoffs.teams", "Squadre ai playoff"], ["playoffs.days_per_round", "Giornate per turno"]]],
 ];
 const getPath = (o, p) => p.split(".").reduce((a, k) => a?.[k], o);
@@ -704,7 +829,33 @@ function bindCommon() {
       if (d.bid) { await rpc("auction_bid", { p_token: tok, p_amount: +d.bid }); return; }
       if (d.admAuction) { await rpc("admin_auction", { p_token: tok, p_action: d.admAuction, p_team: null }); return; }
       if (d.adj) { await rpc("admin_team", { p_token: tok, p_team: d.adj, p_action: "credit_adjust", p_value: { value: +$("#adj-" + d.adj).value || 0 } }); toast("Crediti aggiornati"); return; }
+      if (d.tg) { const M = S.mk, arr = M[d.tg]; const i = arr.indexOf(d.id); i >= 0 ? arr.splice(i, 1) : arr.push(d.id); return render(); }
+      if (d.fac !== undefined) { S.mk.faCourt = d.fac; return render(); }
       switch (d.act) {
+        case "new-trade": S.mk.newTrade = !S.mk.newTrade; return render();
+        case "send-trade": {
+          const M = S.mk;
+          await rpc("propose_trade", { p_token: tok, p_to: M.tradeTo, p_give: M.give, p_get: M.get, p_give_credits: +M.givec || 0, p_get_credits: +M.getc || 0, p_message: M.msg });
+          Object.assign(M, { give: [], get: [], givec: 0, getc: 0, msg: "", newTrade: false }); toast("Proposta inviata"); return render();
+        }
+        case "tr-accept": { await rpc("respond_trade", { p_token: tok, p_trade: +d.tid, p_accept: true }); toast("Scambio fatto"); return render(); }
+        case "tr-reject": { await rpc("respond_trade", { p_token: tok, p_trade: +d.tid, p_accept: false }); toast("Proposta rifiutata"); return render(); }
+        case "tr-cancel": { await rpc("cancel_trade", { p_token: tok, p_trade: +d.tid }); toast("Proposta ritirata"); return render(); }
+        case "rel-ask": S.mk.rel = d.pid; return render();
+        case "rel-no": S.mk.rel = null; return render();
+        case "rel-yes": { const r = await rpc("market_release", { p_token: tok, p_player: d.pid }); S.mk.rel = null; S.lineup = null; toast(`Rilasciato: +${r} crediti`); return render(); }
+        case "fa-open": Object.assign(S.mk, { fa: d.pid, faAmt: "", faDrop: "" }); return render();
+        case "fa-edit": Object.assign(S.mk, { fa: d.pid, faAmt: d.amt, faDrop: d.drop, faSearch: P(d.pid).name }); return render();
+        case "fa-close": S.mk.fa = null; return render();
+        case "fa-send": { await rpc("fa_bid", { p_token: tok, p_player: d.pid, p_amount: +$("#fa-amt").value, p_drop: $("#fa-drop").value || null }); S.mk.fa = null; toast("Offerta in busta"); return render(); }
+        case "fa-withdraw": { await rpc("fa_withdraw", { p_token: tok, p_bid: +d.wd }); toast("Offerta ritirata"); return render(); }
+        case "win-create": {
+          const o = $("#win-open").value, c = $("#win-close").value; if (!o || !c) return toast("Scegli apertura e chiusura", true);
+          await rpc("admin_window", { p_token: tok, p_action: "create", p_opens: new Date(o).toISOString(), p_closes: new Date(c).toISOString(), p_id: null }); toast("Finestra programmata"); return render();
+        }
+        case "win-close": { const r = await rpc("admin_window", { p_token: tok, p_action: "close_now", p_opens: null, p_closes: null, p_id: +d.wid }); await loadLeague(); toast(`Finestra chiusa: ${r?.signed ?? 0} acquisti`); return render(); }
+        case "win-cancel": { await rpc("admin_window", { p_token: tok, p_action: "cancel", p_opens: null, p_closes: null, p_id: +d.wid }); toast("Finestra annullata"); return render(); }
+        case "recompute": { const r = await rpc("admin_window", { p_token: tok, p_action: "recompute_values", p_opens: null, p_closes: null, p_id: null }); toast(`Quotazioni aggiornate (${r.players} giocatori)`); return; }
         case "bid-custom": { const v = +$("#bid-custom").value; if (!v) return; await rpc("auction_bid", { p_token: tok, p_amount: v }); break; }
         case "set-turn": await rpc("admin_auction", { p_token: tok, p_action: "set_turn", p_team: $("#turn-sel").value }); toast("Turno aggiornato"); break;
         case "save-lineup": {
@@ -754,6 +905,16 @@ function bindCommon() {
   };
   const ps = $("#pl-search");
   if (ps) ps.oninput = () => { S.search = ps.value; const pos = ps.selectionStart; render().then(() => { const n = $("#pl-search"); if (n) { n.focus(); n.setSelectionRange(pos, pos); } }); };
+  app.oninput = (e) => {
+    const id = e.target.id, M = S.mk;
+    if (id === "tr-givec" || id === "tr-getc") { M[id === "tr-givec" ? "givec" : "getc"] = e.target.value; const el = $("#tr-sum"); if (el) el.textContent = `Quotazioni: dai ${M.give.reduce((a, x) => a + val(x), 0)} + ${+M.givec || 0} cr · ricevi ${M.get.reduce((a, x) => a + val(x), 0)} + ${+M.getc || 0} cr`; } else if (id === "tr-msg") M.msg = e.target.value;
+    else if (id === "fa-amt") M.faAmt = e.target.value;
+    else if (id === "fa-search") { M.faSearch = e.target.value; const pos = e.target.selectionStart; render().then(() => { const n = $("#fa-search"); if (n) { n.focus(); n.setSelectionRange(pos, pos); } }); }
+  };
+  app.onchange = (e) => {
+    if (e.target.id === "tr-team") { Object.assign(S.mk, { tradeTo: e.target.value, get: [] }); render(); }
+    else if (e.target.id === "fa-drop") S.mk.faDrop = e.target.value;
+  };
   const of = $("#only-free"); if (of) of.onchange = () => { S.onlyFree = of.checked; render(); };
   app.onkeydown = (e) => { if ((e.key === "Enter" || e.key === " ") && e.target.matches("[data-match],[data-team-open]")) { e.preventDefault(); e.target.click(); } };
 }
