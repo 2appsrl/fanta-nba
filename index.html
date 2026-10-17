@@ -103,6 +103,10 @@ nav.tabs .in{display:grid;grid-template-columns:repeat(5,1fr);width:100%;max-wid
 .tab[aria-current="page"]::before{content:"";position:absolute;left:22%;right:22%;top:0;height:3px;background:var(--accent);border-radius:0 0 3px 3px}
 .tab .dot{position:absolute;top:8px;right:18%;width:8px;height:8px;border-radius:50%;background:var(--loss)}
 .tab .badge{position:absolute;top:4px;right:10%;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:var(--loss);color:#fff;font:700 .7rem/18px var(--body);letter-spacing:0}
+.sw{width:32px;height:32px;border-radius:50%;border:2px solid var(--surface);box-shadow:0 0 0 1px var(--line);cursor:pointer;padding:0}
+.sw.on{box-shadow:0 0 0 3px var(--accent)}
+.tlogo{flex:none;display:inline-block;vertical-align:middle;border-radius:50%;object-fit:cover}
+svg.tlogo{border-radius:0}
 .owner{font-weight:500;color:var(--muted);font-size:.85em}
 .injline{font-size:.8rem;color:var(--loss);margin-top:2px}
 .injline a{color:inherit;font-weight:700;display:inline-block;padding:6px 4px;margin:-6px 0}
@@ -304,6 +308,38 @@ const S = {
 const me = () => S.teams.find((t) => t.id === S.sess?.team_id);
 const isAdmin = () => !!me()?.is_admin;
 const R = () => S.league?.rules || {};
+const LOGO_COLORS = ["#E35A12", "#1F5FD1", "#13804B", "#7B3FE4", "#C2342B", "#121820", "#F2B84B", "#0E9AA7", "#D6336C", "#ffffff"];
+const LOGO_SHAPES = { scudo: "Scudo", cerchio: "Cerchio", esagono: "Esagono" };
+function initials(name) {
+  const w = String(name || "?").replace(/[^\p{L}\p{N} ]/gu, "").trim().split(/\s+/).filter(Boolean);
+  return ((w.length > 1 ? w[0][0] + w[1][0] : (w[0] || "?").slice(0, 2)) || "?").toUpperCase();
+}
+function defaultLogo(t) {
+  let h = 0; for (const c of String(t?.name || "")) h = (h * 31 + c.charCodeAt(0)) >>> 0;
+  const c1 = LOGO_COLORS[h % 7], c2 = c1 === "#121820" ? "#F2B84B" : "#121820";
+  return { shape: ["scudo", "cerchio", "esagono"][h % 3], c1, c2, txt: initials(t?.name) };
+}
+let crestSeq = 0;
+function crestSvg(lg, size) {
+  const s = 100, id = "cl" + ++crestSeq;
+  const paths = {
+    scudo: "M50 4 L92 18 L88 58 Q80 84 50 97 Q20 84 12 58 L8 18 Z",
+    cerchio: "M50 3 A47 47 0 1 1 49.9 3 Z",
+    esagono: "M50 3 L93 27 L93 73 L50 97 L7 73 L7 27 Z",
+  };
+  const d = paths[lg.shape] || paths.scudo, txt = esc(String(lg.txt || "").slice(0, 3));
+  const fs = txt.length > 2 ? 34 : 42, ink = lg.c1 === "#ffffff" || lg.c1 === "#F2B84B" ? "#121820" : "#fff";
+  return `<svg class="tlogo" width="${size}" height="${size}" viewBox="0 0 ${s} ${s}" aria-hidden="true"><defs><clipPath id="${id}"><path d="${d}"/></clipPath></defs>
+    <g clip-path="url(#${id})"><rect width="100" height="100" fill="${lg.c1}"/><rect x="62" y="-20" width="16" height="160" fill="${lg.c2}" transform="rotate(25 50 50)"/></g>
+    <path d="${d}" fill="none" stroke="${lg.c2}" stroke-width="6"/>
+    <text x="50" y="57" text-anchor="middle" dominant-baseline="middle" font-family="Big Shoulders Display,Arial Narrow,sans-serif" font-weight="900" font-size="${fs}" fill="${ink}" stroke="${lg.c1}" stroke-width="1.5" paint-order="stroke">${txt}</text></svg>`;
+}
+function teamLogo(idOrTeam, size = 28) {
+  const t = typeof idOrTeam === "string" ? S.teams.find((x) => x.id === idOrTeam) : idOrTeam;
+  if (!t) return "";
+  if (t.logo_img) return `<img class="tlogo" src="${t.logo_img}" width="${size}" height="${size}" alt="" style="width:${size}px;height:${size}px">`;
+  return crestSvg(t.logo || defaultLogo(t), size);
+}
 const ownerOf = (id) => S.teams.find((t) => t.id === id)?.owner_name || "";
 const ownerTag = (id) => { const o = ownerOf(id); return o ? ` <span class="owner">${esc(o)}</span>` : ""; };
 const teamName = (id) => S.teams.find((t) => t.id === id)?.name || "—";
@@ -495,7 +531,7 @@ function installTip() {
     <button class="btn small ghost" data-act="no-install" aria-label="Chiudi">✕</button></section>`;
 }
 function head(title, sub) {
-  return `<header class="top"><div style="min-width:0"><div class="brand">FANTA<b>NBA</b></div><div class="who"><b>${esc(me()?.name || "")}</b> · ${esc(S.league?.name || "")}</div></div>
+  return `<header class="top"><div style="min-width:0"><div class="brand">FANTA<b>NBA</b></div><div class="who" style="display:flex;align-items:center;gap:6px">${me() ? teamLogo(me(), 20) : ""}<span style="min-width:0;overflow:hidden;text-overflow:ellipsis"><b>${esc(me()?.name || "")}</b> · ${esc(S.league?.name || "")}</span></div></div>
   ${S.tab !== "regole" ? `<button class="btn small" data-act="rules">Regole</button>` : ""}</header>
   <h1 style="margin-bottom:${sub ? 8 : 12}px">${title}</h1>${sub ? `<div class="sub">${sub}</div>` : ""}`;
 }
@@ -865,15 +901,15 @@ async function oggiView() {
       const pa = pts(a), pb = pts(b), mineM = a === S.sess.team_id || b === S.sess.team_id;
       const open = S.openMatch === m.id;
       return `<div class="match" data-match="${m.id}" role="button" tabindex="0" aria-expanded="${open}">
-        <div class="t"><div class="ellipsis ${a === S.sess.team_id ? "mine-name" : ""}" style="font-weight:700">${esc(teamName(a))}</div><div class="owner ellipsis">${esc(ownerOf(a))}</div>${m.phase === "playoff" ? '<span class="chip on">Playoff</span>' : ""}</div>
+        <div class="t">${teamLogo(a, 34)}<div class="ellipsis ${a === S.sess.team_id ? "mine-name" : ""}" style="font-weight:700">${esc(teamName(a))}</div><div class="owner ellipsis">${esc(ownerOf(a))}</div>${m.phase === "playoff" ? '<span class="chip on">Playoff</span>' : ""}</div>
         <div class="score"><span class="${pa > pb ? "lead" : ""}">${r1(pa)}</span> <span class="muted" style="font-size:1rem">–</span> <span class="${pb > pa ? "lead" : ""}">${r1(pb)}</span></div>
-        <div class="t r"><div class="ellipsis ${b === S.sess.team_id ? "mine-name" : ""}" style="font-weight:700">${esc(teamName(b))}</div><div class="owner ellipsis">${esc(ownerOf(b))}</div>${mineM ? '<span class="chip">tu</span>' : ""}</div>
+        <div class="t r">${teamLogo(b, 34)}<div class="ellipsis ${b === S.sess.team_id ? "mine-name" : ""}" style="font-weight:700">${esc(teamName(b))}</div><div class="owner ellipsis">${esc(ownerOf(b))}</div>${mineM ? '<span class="chip">tu</span>' : ""}</div>
       </div>${open ? `<div class="grid2" style="padding-bottom:12px">${detailBox(sc.get(a), a)}${detailBox(sc.get(b), b)}</div>` : ""}`;
     }).join("")}</div></section>`;
   } else {
     const rows = S.teams.map((t) => ({ t, p: pts(t.id) })).sort((x, y) => y.p - x.p);
     main = `<section class="card"><div class="label">Punti della giornata</div><div class="list">${rows.map((r, i) =>
-      `<div class="item" data-team-open="${r.t.id}" role="button" tabindex="0"><span class="num muted" style="width:20px">${i + 1}</span><span class="grow ellipsis ${r.t.id === S.sess.team_id ? "mine-name" : ""}" style="font-weight:700">${esc(r.t.name)}${ownerTag(r.t.id)}</span><span class="num" style="font-family:var(--display);font-weight:900;font-size:1.5rem">${r1(r.p)}</span></div>
+      `<div class="item" data-team-open="${r.t.id}" role="button" tabindex="0"><span class="num muted" style="width:20px">${i + 1}</span>${teamLogo(r.t, 30)}<span class="grow ellipsis ${r.t.id === S.sess.team_id ? "mine-name" : ""}" style="font-weight:700">${esc(r.t.name)}${ownerTag(r.t.id)}</span><span class="num" style="font-family:var(--display);font-weight:900;font-size:1.5rem">${r1(r.p)}</span></div>
       ${S.openMatch === r.t.id ? detailBox(sc.get(r.t.id), r.t.id) : ""}`).join("")}</div>
       ${S.league.mode === "h2h" ? '<p class="muted">Nessuna sfida in calendario per questa giornata. L\'admin può generare il calendario in Lega.</p>' : ""}</section>`;
   }
@@ -1008,7 +1044,7 @@ function astaView() {
   }
   const teamsBox = `<section class="card"><div class="label">Squadre</div><div class="scroll"><table><thead><tr><th>Squadra</th><th>Crediti</th><th>Rosa</th><th>BC</th><th>FC</th><th>Max</th></tr></thead><tbody>${S.teams.map((t) => {
     const r = rosterOf(t.id).map((x) => P(x.player_id));
-    return `<tr><td class="team ${t.id === S.sess.team_id ? "mine-name" : ""}" style="font-weight:700">${esc(t.name)}${ownerTag(t.id)}${a.next_team_id === t.id && a.status !== "open" ? ' <span class="chip on">turno</span>' : ""}</td><td>${credits(t.id)}</td><td>${r.length}/${ro.size}</td><td>${r.filter((p) => p.court === "BC").length}/${ro.bc}</td><td>${r.filter((p) => p.court === "FC").length}/${ro.fc}</td><td>${Math.max(0, maxBid(t.id))}</td></tr>`;
+    return `<tr><td class="team ${t.id === S.sess.team_id ? "mine-name" : ""}" style="font-weight:700">${teamLogo(t.id, 22)} ${esc(t.name)}${ownerTag(t.id)}${a.next_team_id === t.id && a.status !== "open" ? ' <span class="chip on">turno</span>' : ""}</td><td>${credits(t.id)}</td><td>${r.length}/${ro.size}</td><td>${r.filter((p) => p.court === "BC").length}/${ro.bc}</td><td>${r.filter((p) => p.court === "FC").length}/${ro.fc}</td><td>${Math.max(0, maxBid(t.id))}</td></tr>`;
   }).join("")}</tbody></table></div></section>`;
   return head("Asta") + `<div class="stack">${board}${teamsBox}${myRosterBox()}</div>`;
 }
@@ -1115,12 +1151,12 @@ async function classificaView() {
   }
   return head("Classifica", h2h ? `Vittorie e sconfitte nelle sfide quotidiane · i primi ${k} ai playoff` : "Punti totali della stagione") + `<div class="stack">
     <section class="card scroll"><table><thead><tr><th>#</th><th style="text-align:left">Squadra</th>${h2h ? "<th>V</th><th>S</th><th>%</th><th>Fatti</th><th>Subiti</th>" : "<th>Punti</th>"}</tr></thead><tbody>
-    ${rows.map((r, i) => { const g = r.wins + r.losses + r.ties; return `<tr class="${h2h && i === k ? "cut" : ""}"><td class="muted">${i + 1}</td><td class="team ${r.team_id === S.sess.team_id ? "mine-name" : ""}" style="text-align:left;font-weight:700">${esc(r.name)}${r.owner_name ? ` <span class="owner">${esc(r.owner_name)}</span>` : ""}</td>${h2h ? `<td>${r.wins}</td><td>${r.losses}</td><td>${g ? (r.wins / g).toFixed(3).replace(/^0/, "") : "—"}</td><td>${r1(r.total_points)}</td><td>${r1(r.points_against)}</td>` : `<td><b>${r1(r.total_points)}</b></td>`}</tr>`; }).join("")}
+    ${rows.map((r, i) => { const g = r.wins + r.losses + r.ties; return `<tr class="${h2h && i === k ? "cut" : ""}"><td class="muted">${i + 1}</td><td class="team ${r.team_id === S.sess.team_id ? "mine-name" : ""}" style="text-align:left;font-weight:700"><span style="display:inline-flex;align-items:center;gap:8px">${teamLogo(r.team_id, 26)}<span>${esc(r.name)}${r.owner_name ? ` <span class="owner">${esc(r.owner_name)}</span>` : ""}</span></span></td>${h2h ? `<td>${r.wins}</td><td>${r.losses}</td><td>${g ? (r.wins / g).toFixed(3).replace(/^0/, "") : "—"}</td><td>${r1(r.total_points)}</td><td>${r1(r.points_against)}</td>` : `<td><b>${r1(r.total_points)}</b></td>`}</tr>`; }).join("")}
     </tbody></table></section>
     ${bracket}
     <section class="card"><div class="label">Rose</div>${S.teams.map((t) => {
       const r = rosterOf(t.id).map((x) => ({ ...P(x.player_id), price: x.price })).sort((a, b) => (a.court > b.court ? 1 : -1) || b.price - a.price);
-      return `<details style="border-top:1px solid var(--line);padding:10px 0"><summary class="row between"><b class="${t.id === S.sess.team_id ? "mine-name" : ""}">${esc(t.name)}${ownerTag(t.id)}</b><span class="muted num">${r.length} giocatori · ${credits(t.id)} crediti</span></summary>
+      return `<details style="border-top:1px solid var(--line);padding:10px 0"><summary class="row between"><span class="row" style="gap:8px;flex-wrap:nowrap">${teamLogo(t.id, 26)}<b class="${t.id === S.sess.team_id ? "mine-name" : ""}">${esc(t.name)}${ownerTag(t.id)}</b></span><span class="muted num">${r.length} giocatori · ${credits(t.id)} crediti</span></summary>
       <div class="list" style="margin-top:6px">${r.map((p) => `<div class="item">${courtChip(p)}<span class="grow" style="min-width:0">${esc(p.name)} <span class="muted">${esc(p.team_abbr || "")}</span> ${injChip(p)}</span><span class="num muted">${p.price}</span></div>`).join("") || '<div class="muted">Vuota</div>'}</div></details>`;
     }).join("")}</section>
   </div>`;
@@ -1362,6 +1398,43 @@ function regoleView() {
   </div>`;
 }
 
+/* ---------- LOGO DELLA SQUADRA ---------- */
+function logoState() {
+  const t = me();
+  if (!S.logoEdit || S.logoEdit.team !== t.id) S.logoEdit = { team: t.id, ...(t.logo || defaultLogo(t)), img: t.logo_img || "", dirty: false };
+  return S.logoEdit;
+}
+function logoPreview(L, size) { return L.img ? `<img class="tlogo" src="${L.img}" style="width:${size}px;height:${size}px" alt="">` : crestSvg(L, size); }
+function logoEditor() {
+  const L = logoState();
+  const sw = (key, cur) => LOGO_COLORS.map((c) => `<button class="sw ${cur === c ? "on" : ""}" style="background:${c}" data-${key}="${c}" aria-label="Colore ${c}"></button>`).join("");
+  return `<section class="card stack"><div class="label">Il logo della tua squadra</div>
+    <div class="row" style="gap:16px;align-items:center;flex-wrap:nowrap"><div id="logo-prev" style="flex:none">${logoPreview(L, 92)}</div>
+      <div class="stack" style="gap:8px;min-width:0">
+        <label class="btn small" style="text-align:center;cursor:pointer">${L.img ? "Cambia immagine" : "Carica un'immagine"}<input type="file" id="logo-file" accept="image/*" hidden></label>
+        ${L.img ? `<button class="btn small ghost" data-act="logo-noimg">Usa lo stemma</button>` : `<span class="muted" style="font-size:.8rem">Foto, meme o il vostro logo: la ritaglio in un cerchio</span>`}
+      </div></div>
+    ${L.img ? "" : `<div><div class="label" style="margin-bottom:6px">Forma</div><div class="row" style="gap:6px">${Object.entries(LOGO_SHAPES).map(([k, v]) => `<button class="btn small ${L.shape === k ? "primary" : ""}" data-lshape="${k}">${v}</button>`).join("")}</div></div>
+    <div><div class="label" style="margin-bottom:6px">Colore principale</div><div class="row" style="gap:8px">${sw("lc1", L.c1)}</div></div>
+    <div><div class="label" style="margin-bottom:6px">Bordo e striscia</div><div class="row" style="gap:8px">${sw("lc2", L.c2)}</div></div>
+    <label class="field"><span class="label">Sigla (max 3)</span><input id="logo-txt" maxlength="3" autocapitalize="characters" value="${esc(L.txt)}" style="max-width:120px"></label>`}
+    <button class="btn primary" data-act="logo-save" ${L.dirty ? "" : "disabled"}>${L.dirty ? "Salva logo" : "Logo salvato"}</button></section>`;
+}
+// immagine ridotta a 160×160 (ritaglio centrale), così pesa pochi KB
+function shrinkImage(file) {
+  return new Promise((ok, ko) => {
+    const url = URL.createObjectURL(file), img = new Image();
+    img.onload = () => {
+      const S2 = 160, c = document.createElement("canvas"); c.width = c.height = S2;
+      const m = Math.min(img.width, img.height), sx = (img.width - m) / 2, sy = (img.height - m) / 2;
+      c.getContext("2d").drawImage(img, sx, sy, m, m, 0, 0, S2, S2);
+      URL.revokeObjectURL(url); ok(c.toDataURL("image/jpeg", 0.82));
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); ko(new Error("Immagine non leggibile")); };
+    img.src = url;
+  });
+}
+
 /* ---------- LEGA ---------- */
 const RULE_FIELDS = [
   ["Punteggio per statistica", [["scoring.pts", "Punto segnato"], ["scoring.reb", "Rimbalzo"], ["scoring.ast", "Assist"], ["scoring.stl", "Palla rubata"], ["scoring.blk", "Stoppata"], ["scoring.tov", "Palla persa"], ["scoring.fg3m", "Tripla segnata (extra)"], ["scoring.fg_miss", "Tiro sbagliato"], ["scoring.ft_miss", "Libero sbagliato"], ["scoring.pf", "Fallo"]]],
@@ -1383,6 +1456,7 @@ function legaView() {
   return head("Lega", `${stLbl[lg.status]} · ${lg.mode === "h2h" ? "Sfide quotidiane + playoff" : "Punti totali"}`) + `<div class="stack">
     <section class="card row between"><div><div class="label">Codice per invitare gli amici</div><div style="font-family:var(--display);font-weight:900;font-size:2.4rem;letter-spacing:.08em" id="code-txt">${esc(lg.code)}</div></div>
       <button class="btn primary" data-act="copy-code">Copia link invito</button></section>
+    ${logoEditor()}
     <section class="card"><div class="label">Squadre (${S.teams.length})</div><div class="list">${S.teams.map((t) => `<div class="item" style="display:block">
       <div class="row between"><span><b class="${t.id === S.sess.team_id ? "mine-name" : ""}">${esc(t.name)}</b> <span class="muted">${esc(t.owner_name || "")}</span> ${t.is_admin ? '<span class="chip">admin</span>' : ""}</span><span class="muted num">${credits(t.id)} cr</span></div>
       ${adm ? `<details style="margin-top:6px"><summary class="muted" style="font-size:.85rem;padding:6px 0">Gestisci</summary><div class="stack" style="padding-top:6px">
@@ -1449,6 +1523,9 @@ function bindCommon() {
         try { await rpc("toggle_favorite", { p_token: tok, p_player: id }); } catch (err) { on ? S.favs.delete(id) : S.favs.add(id); render(); throw err; }
         return;
       }
+      if (d.lshape) { Object.assign(logoState(), { shape: d.lshape, dirty: true }); return render(); }
+      if (d.lc1) { Object.assign(logoState(), { c1: d.lc1, dirty: true }); return render(); }
+      if (d.lc2) { Object.assign(logoState(), { c2: d.lc2, dirty: true }); return render(); }
       if (d.pool) { Object.assign(S.mk, { pool: d.pool, faPage: 0, fa: null }); return render(); }
       if (d.band !== undefined) { S.band = d.band; S.page = 0; return render(); }
       if (d.faband !== undefined) { S.mk.faBand = d.faband; S.mk.faPage = 0; return render(); }
@@ -1456,6 +1533,13 @@ function bindCommon() {
       if (d.fapage !== undefined) { S.mk.faPage = +d.fapage; await render(); return $("#fa-list")?.scrollIntoView({ block: "start" }); }
       switch (d.act) {
         case "no-install": store.set("fantanba.noinstall", 1); return render();
+        case "logo-noimg": Object.assign(logoState(), { img: "", dirty: true }); return render();
+        case "logo-save": {
+          const L = logoState();
+          await rpc("set_logo", { p_token: tok, p_logo: { shape: L.shape, c1: L.c1, c2: L.c2, txt: (L.txt || "").toUpperCase().slice(0, 3) }, p_img: L.img || null });
+          L.dirty = false; Object.assign(me(), { logo: { shape: L.shape, c1: L.c1, c2: L.c2, txt: (L.txt || "").toUpperCase().slice(0, 3) }, logo_img: L.img || null });
+          toast("Logo salvato"); render(); loadLeague().then(render).catch(() => {}); return;
+        }
         case "only-fav": S.onlyFav = !S.onlyFav; S.page = 0; S.mk.faPage = 0; return render();
         case "new-trade": S.mk.newTrade = !S.mk.newTrade; return render();
         case "trade-for": { Object.assign(S.mk, { newTrade: true, tradeTo: d.team, get: [d.pid], give: [] }); await render(); return $("#trade-builder")?.scrollIntoView({ block: "start", behavior: "smooth" }); }
@@ -1539,11 +1623,21 @@ function bindCommon() {
   if (ps) ps.oninput = () => { S.search = ps.value; S.page = 0; const pos = ps.selectionStart; render().then(() => { const n = $("#pl-search"); if (n) { n.focus(); n.setSelectionRange(pos, pos); } }); };
   app.oninput = (e) => {
     const id = e.target.id, M = S.mk;
+    if (id === "logo-txt") {
+      const L = logoState(); L.txt = e.target.value.toUpperCase().slice(0, 3); L.dirty = true;
+      $("#logo-prev").innerHTML = logoPreview(L, 92);
+      const b = app.querySelector('[data-act="logo-save"]'); if (b) { b.disabled = false; b.textContent = "Salva logo"; }
+      return;
+    }
     if (id === "tr-givec" || id === "tr-getc") { M[id === "tr-givec" ? "givec" : "getc"] = e.target.value; const el = $("#tr-sum"); if (el) el.textContent = `Quotazioni: dai ${M.give.reduce((a, x) => a + val(x), 0)} + ${+M.givec || 0} cr · ricevi ${M.get.reduce((a, x) => a + val(x), 0)} + ${+M.getc || 0} cr`; } else if (id === "tr-msg") M.msg = e.target.value;
     else if (id === "fa-amt") M.faAmt = e.target.value;
     else if (id === "fa-search") { M.faSearch = e.target.value; M.faPage = 0; const pos = e.target.selectionStart; render().then(() => { const n = $("#fa-search"); if (n) { n.focus(); n.setSelectionRange(pos, pos); } }); }
   };
-  app.onchange = (e) => {
+  app.onchange = async (e) => {
+    if (e.target.id === "logo-file" && e.target.files?.[0]) {
+      try { Object.assign(logoState(), { img: await shrinkImage(e.target.files[0]), dirty: true }); render(); } catch (err) { toast(err.message, true); }
+      return;
+    }
     if (e.target.id === "tr-team") { Object.assign(S.mk, { tradeTo: e.target.value, get: [] }); render(); }
     else if (e.target.id === "fa-drop") S.mk.faDrop = e.target.value;
   };
