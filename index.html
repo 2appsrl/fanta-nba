@@ -5,7 +5,14 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Fanta NBA</title>
 <meta name="claude:viewport-fit-sides" content="cover">
-<meta name="theme-color" content="#0E1116">
+<meta name="theme-color" content="#121820">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Fanta NBA">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Big+Shoulders+Display:wght@700;800;900&display=swap">
@@ -37,7 +44,7 @@ body{background:var(--bg);color:var(--ink);font:500 15px/1.45 var(--body);
   padding-left:max(0px,env(safe-area-inset-left,0px));padding-right:max(0px,env(safe-area-inset-right,0px));
   -webkit-tap-highlight-color:transparent}
 button,input,select{font:inherit;color:inherit}
-.wrap{max-width:720px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:12px 96px}
+.wrap{max-width:720px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-top:max(10px,env(safe-area-inset-top,0px));padding-bottom:96px}
 h1,h2,h3{font-family:var(--display);font-weight:800;letter-spacing:.01em;margin:0;line-height:1.05;text-wrap:balance}
 h1{font-size:2.4rem} h2{font-size:1.6rem} h3{font-size:1.2rem}
 .label{font-size:.72rem;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);font-weight:600}
@@ -62,7 +69,8 @@ section.card{background:var(--surface);border:1px solid var(--line);border-radiu
 .btn.danger{color:var(--loss);border-color:var(--loss);background:transparent}
 .btn:disabled{opacity:.45;cursor:not-allowed}
 .btn:focus-visible,input:focus-visible,select:focus-visible,.tab:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-input,select{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:9px 11px;min-height:40px;width:100%}
+input,select{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:9px 11px;min-height:44px;width:100%;font-size:16px}
+button,a,.tab{touch-action:manipulation}
 input[type=checkbox]{width:20px;height:20px;min-height:0;accent-color:var(--accent)}
 .field{display:flex;flex-direction:column;gap:4px;min-width:0}
 .grid2{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
@@ -78,7 +86,10 @@ input[type=checkbox]{width:20px;height:20px;min-height:0;accent-color:var(--acce
 .avatar.lg{width:84px;height:84px}
 
 /* testata */
-header.top{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;padding-block:6px 14px}
+header.top{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-block:4px 10px}
+.who{font-size:.8rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:62vw}
+.who b{color:var(--mine)}
+.sub{color:var(--muted);margin:-6px 0 12px;font-size:.95rem}
 .brand{font-family:var(--display);font-weight:900;font-size:1.9rem;line-height:.9;letter-spacing:.02em}
 .brand b{color:var(--accent)}
 
@@ -93,7 +104,14 @@ nav.tabs .in{display:grid;grid-template-columns:repeat(5,1fr);width:100%;max-wid
 .tab .dot{position:absolute;top:8px;right:18%;width:8px;height:8px;border-radius:50%;background:var(--loss)}
 .tab .badge{position:absolute;top:4px;right:10%;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:var(--loss);color:#fff;font:700 .7rem/18px var(--body);letter-spacing:0}
 .injline{font-size:.8rem;color:var(--loss);margin-top:2px}
-.injline a{color:inherit;font-weight:700}
+.injline a{color:inherit;font-weight:700;display:inline-block;padding:6px 4px;margin:-6px 0}
+.prow{display:grid;grid-template-columns:auto auto 1fr auto;column-gap:8px;row-gap:6px;align-items:center;padding:12px 0;border-top:1px solid var(--line)}
+.prow:first-child{border-top:0}
+.prow .pn{font-weight:700;line-height:1.2}
+.prow .pq{text-align:right}
+.prow .pq .v{font-family:var(--display);font-weight:900;font-size:1.5rem;line-height:1}
+.prow .pa{grid-column:2 / -1;display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap;align-items:center}
+.prow .pa:empty{display:none}
 .alert{border:2px solid var(--loss);background:color-mix(in srgb,var(--loss) 8%,var(--surface));border-radius:var(--r);padding:12px 14px}
 .alert.warn{border-color:var(--warn);background:color-mix(in srgb,var(--warn) 9%,var(--surface))}
 
@@ -129,7 +147,7 @@ tr.cut td{border-top:2px dashed var(--accent)}
 .seg button+button{border-left:1px solid var(--line)}
 .seg button.on{background:var(--accent);color:var(--accent-ink)}
 .seg button.on.p{background:var(--surface2);color:var(--ink)}
-.star{border:0;background:none;font-size:1.25rem;line-height:1;cursor:pointer;color:var(--line);padding:4px;min-width:32px}
+.star{border:0;background:none;font-size:1.35rem;line-height:1;cursor:pointer;color:var(--line);padding:0;min-width:40px;min-height:44px;display:grid;place-items:center;flex:none}
 .star.on{color:var(--accent)}
 .daypick{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px}
 .daypick button{flex:none}
@@ -358,6 +376,12 @@ function subscribe() {
   channel = sb.channel("lg-" + id)
     .on("postgres_changes", { event: "*", schema: "public", table: "auction", filter: f }, async (p) => {
       const prev = S.auction; S.auction = p.new;
+      if (prev?.status === "open" && p.new?.status === "open" && prev.player_id === p.new.player_id
+          && prev.current_team_id === S.sess.team_id && p.new.current_team_id !== S.sess.team_id) {
+        try { navigator.vibrate?.([120, 60, 120]); } catch {}
+        toast(`Superato: ${teamName(p.new.current_team_id)} offre ${p.new.current_bid}`, true);
+      }
+      if (p.new?.status === "open" && prev?.status !== "open" && p.new.nominated_by !== S.sess.team_id) { try { navigator.vibrate?.(80); } catch {} }
       if (prev?.status === "open" && p.new?.status !== "open") { try { await reloadRoster(); } catch {} }
       if (p.new?.last_result && JSON.stringify(p.new.last_result) !== JSON.stringify(prev?.last_result)) {
         const r = p.new.last_result; toast(`${P(r.player_id).name} a ${teamName(r.team_id)} per ${r.price}`);
@@ -399,10 +423,27 @@ $("#tabs").addEventListener("click", (e) => {
   S.tab = b.dataset.tab; store.set("fantanba.tab", S.tab); render(); window.scrollTo(0, 0);
 });
 
+const standalone = () => { try { return matchMedia("(display-mode: standalone)").matches || navigator.standalone === true; } catch { return false; } };
+function installTip() {
+  if (standalone() || store.get("fantanba.noinstall")) return "";
+  const ios = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  return `<section class="card row" style="gap:10px;align-items:center"><img src="icon-192.png" alt="" style="width:44px;height:44px;border-radius:10px;flex:none">
+    <div class="grow" style="font-size:.9rem"><b>Mettila sulla schermata Home</b><div class="muted">${ios ? "Tocca Condividi ⬆︎ e poi “Aggiungi alla schermata Home”" : "Menu ⋮ del browser e poi “Installa app”"}</div></div>
+    <button class="btn small ghost" data-act="no-install" aria-label="Chiudi">✕</button></section>`;
+}
 function head(title, sub) {
-  return `<header class="top"><div><div class="brand">FANTA<b>NBA</b></div>${sub ? `<div class="muted" style="margin-top:4px">${sub}</div>` : ""}</div>
-  <div style="text-align:right;max-width:45%;min-width:0;display:flex;flex-direction:column;align-items:flex-end;gap:4px"><div class="label ellipsis" style="max-width:100%">${esc(S.league?.name || "")}</div><div class="mine-name ellipsis" style="font-weight:700;max-width:100%">${esc(me()?.name || "")}</div>${S.tab !== "regole" ? `<button class="btn small" data-act="rules">Regole</button>` : ""}</div></header>
-  <h1 style="margin-bottom:12px">${title}</h1>`;
+  return `<header class="top"><div style="min-width:0"><div class="brand">FANTA<b>NBA</b></div><div class="who"><b>${esc(me()?.name || "")}</b> · ${esc(S.league?.name || "")}</div></div>
+  ${S.tab !== "regole" ? `<button class="btn small" data-act="rules">Regole</button>` : ""}</header>
+  <h1 style="margin-bottom:${sub ? 8 : 12}px">${title}</h1>${sub ? `<div class="sub">${sub}</div>` : ""}`;
+}
+// riga giocatore per liste lunghe: nome intero, quotazione a destra, azione sotto
+function prow(p, { meta = "", stats = "", action = "", below = "" } = {}) {
+  return `<div class="prow">${favStar(p.id)}${avatar(p)}
+    <div style="min-width:0"><div class="pn">${esc(p.name)}</div>
+      <div class="row" style="gap:6px;margin-top:3px">${courtChip(p)}<span class="muted" style="font-size:.85rem">${esc(p.team_abbr || "")}</span>${injChip(p)}${meta}</div>
+      ${injLine(p)}${stats ? `<div class="muted num" style="font-size:.8rem;margin-top:2px">${stats}</div>` : ""}</div>
+    <div class="pq"><div class="label">Quot.</div><div class="v num">${val(p.id)}</div><div class="muted num" style="font-size:.75rem">${r1(estFp(p.id))} pt/gara</div></div>
+    <div class="pa">${action}</div>${below ? `<div style="grid-column:1 / -1">${below}</div>` : ""}</div>`;
 }
 
 render.seq = 0;
@@ -424,10 +465,12 @@ async function render() {
   if (ticket !== render.seq) return;
   app.innerHTML = html;
   bindCommon(); tick();
+  keepAwake(S.tab === "asta" && !isTrade() && S.league?.status === "auction");
 }
 
 /* ---------- LOGIN ---------- */
-let loginMode = "accedi";
+const invitedCode = (() => { try { return (new URLSearchParams(location.search).get("lega") || "").toUpperCase().slice(0, 6); } catch { return ""; } })();
+let loginMode = invitedCode ? "entra" : "accedi";
 function loginView() {
   const f = (id, label, type = "text", extra = "") => `<label class="field"><span class="label">${label}</span><input id="${id}" type="${type}" ${extra}></label>`;
   const forms = {
@@ -455,6 +498,7 @@ function loginView() {
 }
 function bindLogin() {
   $("#app").querySelectorAll("[data-mode]").forEach((b) => b.onclick = () => { loginMode = b.dataset.mode; render(); });
+  if (invitedCode && $("#lg-code") && !$("#lg-code").value) $("#lg-code").value = invitedCode;
   const v = (id) => ($("#" + id)?.value || "").trim();
   const go = async (fn) => {
     try {
@@ -523,7 +567,7 @@ async function oggiView() {
       ${S.league.mode === "h2h" ? '<p class="muted">Nessuna sfida in calendario per questa giornata. L\'admin può generare il calendario in Lega.</p>' : ""}</section>`;
   }
 
-  return head(fmtDay(d), state + (deadline && state === "Da giocare" ? ` · quintetti chiusi alle ${fmtTime(deadline)}` : "")) + `
+  return head(fmtDay(d), state + (deadline && state === "Da giocare" ? ` · quintetti chiusi alle ${fmtTime(deadline)}` : "")) + installTip() + `
   <div class="stack">
     <div class="row between">
       <button class="btn small" data-day="${prev || ""}" ${prev ? "" : "disabled"}>‹ ${prev ? fmtDay(prev) : ""}</button>
@@ -596,7 +640,9 @@ async function formazioneView() {
     ${L.savedFor && L.savedFor !== d ? `<p class="muted" style="margin:0">Ti mostro il quintetto salvato per ${fmtDay(L.savedFor)}: se non cambi nulla resta valido anche oggi. Il capitano va scelto ogni volta.</p>` : ""}
     ${group("BC", "Back court · guardie")}${group("FC", "Front court · ali e centri")}
     <p class="muted" style="margin:0">Se un titolare non gioca, entra il primo panchinaro dello stesso reparto (Pan 1, poi Pan 2…).</p>
-    <div class="sticky-save"><button class="btn primary" style="width:100%" data-act="save-lineup" ${locked || !d ? "disabled" : ""}>${locked ? "Giornata già iniziata" : "Salva quintetto"}</button></div>
+    ${locked ? `<div class="muted" style="text-align:center">Giornata già iniziata: quintetto bloccato</div>`
+      : L.dirty || L.savedFor !== d ? `<div class="sticky-save"><button class="btn primary" style="width:100%;min-height:48px" data-act="save-lineup" ${!d ? "disabled" : ""}>Salva quintetto${L.dirty ? " (modifiche non salvate)" : ""}</button></div>`
+      : `<div class="row" style="justify-content:center;color:var(--win);font-weight:700">✓ Quintetto salvato per ${fmtDay(d)}</div>`}
   </div>`;
 }
 function releaseBox(mine) {
@@ -653,7 +699,7 @@ function astaView() {
     const r = rosterOf(t.id).map((x) => P(x.player_id));
     return `<tr><td class="team ${t.id === S.sess.team_id ? "mine-name" : ""}" style="font-weight:700">${esc(t.name)}${a.next_team_id === t.id && a.status !== "open" ? ' <span class="chip on">turno</span>' : ""}</td><td>${credits(t.id)}</td><td>${r.length}/${ro.size}</td><td>${r.filter((p) => p.court === "BC").length}/${ro.bc}</td><td>${r.filter((p) => p.court === "FC").length}/${ro.fc}</td><td>${Math.max(0, maxBid(t.id))}</td></tr>`;
   }).join("")}</tbody></table></div></section>`;
-  return head("Asta", `${R().credits} crediti a testa · rosa da ${ro.size} (${ro.bc} BC + ${ro.fc} FC) · max ${ro.max_per_nba_team} per squadra NBA`) + `<div class="stack">${board}${teamsBox}${myRosterBox()}</div>`;
+  return head("Asta") + `<div class="stack">${board}${teamsBox}${myRosterBox()}</div>`;
 }
 const PER_PAGE = 30;
 const BANDS = [["", "Tutte"], ["0-10", "fino a 10"], ["11-30", "11–30"], ["31-60", "31–60"], ["61-100", "61–100"], ["101-99999", "oltre 100"]];
@@ -690,11 +736,10 @@ function nominateBox(previewOnly = false) {
     ${pager(list.length, S.page, "page")}
     <div class="list" id="pl-list">${pageOf(list, S.page).map((p) => {
       const l = S.last.get(p.id), owner = S.roster.find((r) => r.player_id === p.id);
-      return `<div class="item">${favStar(p.id)}${avatar(p)}<div class="grow" style="min-width:0"><div class="ellipsis" style="font-weight:700">${esc(p.name)}</div>
-        <div class="row" style="gap:6px">${courtChip(p)}<span class="muted" style="font-size:.85rem">${esc(p.team_abbr)}</span>${injChip(p)}</div>${injLine(p)}
-        <div class="muted num" style="font-size:.8rem">${l ? `25-26: ${r1(l.pts)} pt · ${r1(l.reb)} rb · ${r1(l.ast)} as · ${l.gp} gare` : "nessuna statistica 25-26"}</div></div>
-        <div style="text-align:right"><div class="label">Quot.</div><div class="num" style="font-family:var(--display);font-weight:900;font-size:1.35rem;line-height:1">${val(p.id)}</div><div class="muted num" style="font-size:.78rem">${r1(estFp(p.id))} pt/gara</div>
-        ${owner ? `<span class="chip">${esc(teamName(owner.team_id))} · ${owner.price}</span>` : previewOnly ? "" : `<button class="btn small primary" data-nom="${p.id}">Chiama a ${base}</button>`}</div></div>`;
+      return prow(p, {
+        stats: l ? `25-26: ${r1(l.pts)} pt · ${r1(l.reb)} rb · ${r1(l.ast)} as · ${l.gp} gare` : "nessuna statistica 25-26",
+        action: owner ? `<span class="chip">${esc(teamName(owner.team_id))} · ${owner.price}</span>` : previewOnly ? "" : `<button class="btn small primary" data-nom="${p.id}">Chiama a ${base}</button>`,
+      });
     }).join("") || `<div class="empty">${S.onlyFav ? "Nessun preferito qui. Tocca la ★ accanto a un giocatore per salvarlo." : "Nessun giocatore trovato"}</div>`}</div>
     ${pager(list.length, S.page, "page")}
   </section>`;
@@ -709,7 +754,7 @@ function rosterNeedBox() {
       <div style="text-align:right;flex:none"><div class="num" style="font-family:var(--display);font-weight:900;font-size:1.5rem;line-height:1">${have}/${cap}</div><div style="font-size:.75rem;font-weight:700;color:${miss ? "var(--accent)" : "var(--win)"}">${miss ? "mancano " + miss : "completo"}</div></div></div>`;
   };
   return `<section class="card stack" style="gap:10px"><div class="row between"><div class="label">La tua rosa</div><div class="muted num" style="font-size:.85rem">${credits(S.sess.team_id)} crediti · max offerta ${Math.max(0, maxBid(S.sess.team_id))}</div></div>
-    ${row("BC", "guardie")}${row("FC", "ali e centri")}</section>`;
+    ${row("BC", "guardie")}${row("FC", "ali e centri")}<div class="muted" style="font-size:.8rem">Massimo ${ro.max_per_nba_team} giocatori della stessa squadra NBA</div></section>`;
 }
 function myRosterBox() {
   const mine = rosterOf(S.sess.team_id).map((r) => ({ ...P(r.player_id), price: r.price })).sort((a, b) => b.price - a.price);
@@ -717,7 +762,13 @@ function myRosterBox() {
 }
 
 /* timer asta */
-let closing = null;
+let closing = null, wakeLock = null;
+async function keepAwake(on) {
+  try {
+    if (on && !wakeLock && "wakeLock" in navigator && document.visibilityState === "visible") { wakeLock = await navigator.wakeLock.request("screen"); wakeLock.addEventListener?.("release", () => (wakeLock = null)); }
+    if (!on && wakeLock) { await wakeLock.release(); wakeLock = null; }
+  } catch { wakeLock = null; }
+}
 function tick() {
   const a = S.auction; if (!a || a.status !== "open" || !a.ends_at) return;
   const left = new Date(a.ends_at).getTime() - now();
@@ -759,7 +810,7 @@ async function classificaView() {
     <section class="card"><div class="label">Rose</div>${S.teams.map((t) => {
       const r = rosterOf(t.id).map((x) => ({ ...P(x.player_id), price: x.price })).sort((a, b) => (a.court > b.court ? 1 : -1) || b.price - a.price);
       return `<details style="border-top:1px solid var(--line);padding:10px 0"><summary class="row between"><b class="${t.id === S.sess.team_id ? "mine-name" : ""}">${esc(t.name)}</b><span class="muted num">${r.length} giocatori · ${credits(t.id)} crediti</span></summary>
-      <div class="list" style="margin-top:6px">${r.map((p) => `<div class="item">${courtChip(p)}<span class="grow ellipsis">${esc(p.name)} <span class="muted">${esc(p.team_abbr || "")}</span> ${injChip(p)}</span><span class="num muted">${p.price}</span></div>`).join("") || '<div class="muted">Vuota</div>'}</div></details>`;
+      <div class="list" style="margin-top:6px">${r.map((p) => `<div class="item">${courtChip(p)}<span class="grow" style="min-width:0">${esc(p.name)} <span class="muted">${esc(p.team_abbr || "")}</span> ${injChip(p)}</span><span class="num muted">${p.price}</span></div>`).join("") || '<div class="muted">Vuota</div>'}</div></details>`;
     }).join("")}</section>
   </div>`;
 }
@@ -801,13 +852,13 @@ async function tradeView() {
   const winBox = `<section class="board"><div class="label">Finestra di mercato</div>
     <div class="mid" style="margin-top:6px">${open ? "Aperta" : "Chiusa"}</div>
     <p style="opacity:.8;margin:6px 0 0">${open ? `Si chiude ${fmtDT(open.closes_at)}. Puoi rilasciare giocatori e fare offerte segrete sui free agent: a chiusura vince l'offerta più alta.` : next ? `Prossima apertura ${fmtDT(next.opens_at)}, chiusura ${fmtDT(next.closes_at)}.` : "Nessuna finestra in programma. Gli scambi tra squadre sono sempre aperti."}</p></section>
-    ${isAdmin() ? `<section class="card stack"><div class="label">Gestione finestre (admin)</div>
+    ${isAdmin() ? `<details class="card" style="background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px"${open ? " open" : ""}><summary class="label" style="padding:4px 0">Gestione finestre (admin) ›</summary><div class="stack" style="margin-top:10px">
       ${open ? `<div class="row"><button class="btn" data-act="win-close" data-wid="${open.id}">Chiudi ora e assegna le buste</button><button class="btn danger" data-act="win-cancel" data-wid="${open.id}">Annulla finestra</button></div>` : ""}
       ${next ? `<div class="row"><span class="grow muted">Programmata: ${fmtDT(next.opens_at)} → ${fmtDT(next.closes_at)}</span><button class="btn small danger" data-act="win-cancel" data-wid="${next.id}">Annulla</button></div>` : ""}
       <div class="grid2"><label class="field"><span class="muted" style="font-size:.85rem">Apertura</span><input type="datetime-local" id="win-open" value="${toLocal(new Date(t))}"></label>
       <label class="field"><span class="muted" style="font-size:.85rem">Chiusura</span><input type="datetime-local" id="win-close" value="${toLocal(new Date(t + 3 * 864e5))}"></label></div>
       <div class="row"><button class="btn primary" data-act="win-create">Programma finestra</button><button class="btn" data-act="recompute">Ricalcola quotazioni</button></div>
-      <p class="muted" style="margin:0;font-size:.85rem">Le buste vengono assegnate in automatico entro 5 minuti dalla chiusura.</p></section>` : ""}`;
+      <p class="muted" style="margin:0;font-size:.85rem">Le buste vengono assegnate in automatico entro 5 minuti dalla chiusura.</p></div></details>` : ""}`;
 
   // scambi
   const pend = trades.filter((x) => x.status === "pending");
@@ -874,16 +925,14 @@ async function tradeView() {
     <div class="list" id="fa-list">${pageOf(list, M.faPage).map((p) => {
       const v = val(p.id), isOpen = M.fa === p.id, own = ownerOf.get(p.id);
       const action = pool === "teams"
-        ? `<button class="btn small primary" data-act="trade-for" data-pid="${p.id}" data-team="${own.team_id}">Proponi scambio</button>`
-        : open ? (isOpen ? "" : `<button class="btn small primary" data-act="fa-open" data-pid="${p.id}">Offerta</button>`) : `<span class="chip">mercato chiuso</span>`;
-      return `<div class="item" style="flex-wrap:wrap">${favStar(p.id)}${avatar(p)}<div class="grow" style="min-width:0"><div class="ellipsis" style="font-weight:700">${esc(p.name)}</div>
-        <div class="row" style="gap:6px">${courtChip(p)}<span class="muted" style="font-size:.85rem">${esc(p.team_abbr)} · ${r1(estFp(p.id))} pt/gara</span>${injChip(p)}${own ? `<span class="chip">${esc(teamName(own.team_id))}</span>` : ""}</div>${injLine(p)}</div>
-        <div style="text-align:right"><div class="label">Quot.</div><div class="num" style="font-family:var(--display);font-weight:900;font-size:1.35rem;line-height:1.1">${v}</div>${action}</div>
-        ${isOpen && pool === "fa" && open ? `<div class="stack" style="width:100%">
-          <div class="grid2"><label class="field"><span class="muted" style="font-size:.85rem">La tua offerta (min ${v})</span><input id="fa-amt" type="number" min="${v}" value="${M.faAmt || v}"></label>
+        ? `<span class="chip">${esc(teamName(own.team_id))}</span><button class="btn small primary" data-act="trade-for" data-pid="${p.id}" data-team="${own.team_id}">Proponi scambio</button>`
+        : open && !isOpen ? `<button class="btn small primary" data-act="fa-open" data-pid="${p.id}">Fai offerta</button>` : "";
+      const below = isOpen && pool === "fa" && open ? `<div class="stack" style="background:var(--surface2);border-radius:8px;padding:10px">
+          <div class="grid2"><label class="field"><span class="muted" style="font-size:.85rem">La tua offerta (min ${v})</span><input id="fa-amt" type="number" inputmode="numeric" min="${v}" value="${M.faAmt || v}"></label>
           <label class="field"><span class="muted" style="font-size:.85rem">Se vinci rilasci ${full ? "(obbligatorio)" : "(facoltativo)"}</span><select id="fa-drop"><option value="">${full ? "Scegli…" : "Nessuno"}</option>${mine.map((m) => `<option value="${m.id}" ${M.faDrop === m.id ? "selected" : ""}>${esc(m.name)} (+${refundOf(m.id)})</option>`).join("")}</select></label></div>
-          <div class="row"><button class="btn primary" data-act="fa-send" data-pid="${p.id}">Metti in busta</button><button class="btn" data-act="fa-close">Annulla</button></div>
-          <span class="muted" style="font-size:.85rem">Nessuno vede la tua offerta. Puoi cambiarla fino alla chiusura.</span></div>` : ""}</div>`;
+          <div class="row"><button class="btn primary grow" data-act="fa-send" data-pid="${p.id}">Metti in busta</button><button class="btn" data-act="fa-close">Annulla</button></div>
+          <span class="muted" style="font-size:.85rem">Nessuno vede la tua offerta. Puoi cambiarla fino alla chiusura.</span></div>` : "";
+      return prow(p, { action, below });
     }).join("") || `<div class="empty">Nessun giocatore trovato</div>`}</div>
     ${pager(list.length, M.faPage, "fapage")}</section>`;
 
@@ -958,9 +1007,13 @@ function legaView() {
   }).join("")}</div></div>`).join("");
   return head("Lega", `${stLbl[lg.status]} · ${lg.mode === "h2h" ? "Sfide quotidiane + playoff" : "Punti totali"}`) + `<div class="stack">
     <section class="card row between"><div><div class="label">Codice per invitare gli amici</div><div style="font-family:var(--display);font-weight:900;font-size:2.4rem;letter-spacing:.08em" id="code-txt">${esc(lg.code)}</div></div>
-      <button class="btn" data-act="copy-code">Copia invito</button></section>
-    <section class="card"><div class="label">Squadre (${S.teams.length})</div><div class="list">${S.teams.map((t) => `<div class="item"><span class="grow"><b class="${t.id === S.sess.team_id ? "mine-name" : ""}">${esc(t.name)}</b> <span class="muted">${esc(t.owner_name || "")}</span> ${t.is_admin ? '<span class="chip">admin</span>' : ""}</span>
-      ${adm ? `<label class="row" style="gap:6px"><span class="muted" style="font-size:.8rem">± crediti</span><input type="number" style="width:84px" id="adj-${t.id}" value="${t.credit_adjust || 0}"></label><button class="btn small" data-adj="${t.id}">OK</button>` : `<span class="muted num">${credits(t.id)} cr</span>`}</div>`).join("")}</div></section>
+      <button class="btn primary" data-act="copy-code">Copia link invito</button></section>
+    <section class="card"><div class="label">Squadre (${S.teams.length})</div><div class="list">${S.teams.map((t) => `<div class="item" style="display:block">
+      <div class="row between"><span><b class="${t.id === S.sess.team_id ? "mine-name" : ""}">${esc(t.name)}</b> <span class="muted">${esc(t.owner_name || "")}</span> ${t.is_admin ? '<span class="chip">admin</span>' : ""}</span><span class="muted num">${credits(t.id)} cr</span></div>
+      ${adm ? `<details style="margin-top:6px"><summary class="muted" style="font-size:.85rem;padding:6px 0">Gestisci</summary><div class="stack" style="padding-top:6px">
+        <div class="row"><span class="muted" style="font-size:.85rem;width:110px">Crediti extra (±)</span><input type="number" inputmode="numeric" class="grow" style="width:auto" id="adj-${t.id}" value="${t.credit_adjust || 0}"><button class="btn small" data-adj="${t.id}">Salva</button></div>
+        <div class="row"><span class="muted" style="font-size:.85rem;width:110px">Nuovo PIN</span><input type="text" inputmode="numeric" maxlength="8" class="grow" style="width:auto" id="pin-${t.id}" placeholder="es. 4821"><button class="btn small" data-pin="${t.id}">Imposta</button></div>
+      </div></details>` : ""}</div>`).join("")}</div></section>
     ${adm ? `<section class="card stack"><div class="label">Gestione (solo admin)</div>
       <div class="grid2">
         <label class="field"><span class="muted" style="font-size:.85rem">Fase</span><select id="lg-status">${Object.entries(stLbl).map(([k, v]) => `<option value="${k}" ${lg.status === k ? "selected" : ""}>${v}</option>`).join("")}</select></label>
@@ -1004,13 +1057,14 @@ function bindCommon() {
           if (L.bench.includes(id)) L.bench = L.bench.filter((x) => x !== id);
           else { L.bench.push(id); L.starters = L.starters.filter((x) => x !== id); if (L.captain === id) L.captain = null; }
         }
-        return render();
+        L.dirty = true; return render();
       }
-      if (d.cap) { S.lineup.captain = S.lineup.captain === d.cap ? null : d.cap; return render(); }
+      if (d.cap) { S.lineup.captain = S.lineup.captain === d.cap ? null : d.cap; S.lineup.dirty = true; return render(); }
       if (d.court !== undefined) { S.court = d.court; S.page = 0; return render(); }
       if (d.nom) { await rpc("auction_nominate", { p_token: tok, p_player: d.nom, p_start: +(R().auction || {}).base_price || 1 }); return; }
       if (d.bid) { await rpc("auction_bid", { p_token: tok, p_amount: +d.bid }); return; }
       if (d.admAuction) { await rpc("admin_auction", { p_token: tok, p_action: d.admAuction, p_team: null }); return; }
+      if (d.pin) { const v = ($("#pin-" + d.pin).value || "").trim(); await rpc("admin_team", { p_token: tok, p_team: d.pin, p_action: "reset_pin", p_value: { pin: v } }); toast(`Nuovo PIN per ${teamName(d.pin)}: ${v}`); return; }
       if (d.adj) { await rpc("admin_team", { p_token: tok, p_team: d.adj, p_action: "credit_adjust", p_value: { value: +$("#adj-" + d.adj).value || 0 } }); toast("Crediti aggiornati"); return; }
       if (d.tg) { const M = S.mk, arr = M[d.tg]; const i = arr.indexOf(d.id); i >= 0 ? arr.splice(i, 1) : arr.push(d.id); return render(); }
       if (d.fac !== undefined) { S.mk.faCourt = d.fac; S.mk.faPage = 0; return render(); }
@@ -1026,6 +1080,7 @@ function bindCommon() {
       if (d.page !== undefined) { S.page = +d.page; await render(); return $("#pl-list")?.scrollIntoView({ block: "start" }); }
       if (d.fapage !== undefined) { S.mk.faPage = +d.fapage; await render(); return $("#fa-list")?.scrollIntoView({ block: "start" }); }
       switch (d.act) {
+        case "no-install": store.set("fantanba.noinstall", 1); return render();
         case "only-fav": S.onlyFav = !S.onlyFav; S.page = 0; S.mk.faPage = 0; return render();
         case "new-trade": S.mk.newTrade = !S.mk.newTrade; return render();
         case "trade-for": { Object.assign(S.mk, { newTrade: true, tradeTo: d.team, get: [d.pid], give: [] }); await render(); return $("#trade-builder")?.scrollIntoView({ block: "start", behavior: "smooth" }); }
@@ -1059,7 +1114,7 @@ function bindCommon() {
         case "save-lineup": {
           const L = S.lineup;
           await rpc("set_lineup", { p_token: tok, p_date: L.date, p_starters: L.starters, p_bench: L.bench, p_captain: L.captain });
-          L.savedFor = L.date; S.myStarters = [...L.starters]; toast("Quintetto salvato per " + fmtDay(L.date)); render(); break;
+          L.savedFor = L.date; L.dirty = false; S.myStarters = [...L.starters]; toast("Quintetto salvato per " + fmtDay(L.date)); render(); break;
         }
         case "release": {
           const box = $("#rel-confirm"), pid = $("#rel-p").value;
@@ -1068,7 +1123,8 @@ function bindCommon() {
         case "release-yes": await rpc("release_player", { p_token: tok, p_player: d.pid }); S.lineup = null; toast("Giocatore svincolato"); break;
         case "release-no": $("#rel-confirm").innerHTML = ""; break;
         case "copy-code": {
-          const txt = `Entra nella mia lega Fanta NBA "${S.league.name}"! Apri ${location.href.split("#")[0]} → "Ho un codice" → ${S.league.code}`;
+          const link = location.href.split(/[?#]/)[0] + "?lega=" + S.league.code;
+          const txt = `Entra nella mia lega Fanta NBA "${S.league.name}"! Apri ${link} , scegli il nome della tua squadra e un PIN.`;
           try { await navigator.clipboard.writeText(txt); toast("Invito copiato"); } catch { const r = document.createRange(); r.selectNodeContents($("#code-txt")); getSelection().removeAllRanges(); getSelection().addRange(r); toast("Copia il codice selezionato"); }
           break;
         }
