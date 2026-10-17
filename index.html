@@ -183,25 +183,43 @@ details>summary::-webkit-details-marker{display:none}
 .court{background:var(--surface2);border-radius:10px;padding:14px}
 
 /* ingresso: palazzetto di sera, scelta di un solo look scuro indipendente dal tema */
-.arena-cv{position:fixed;inset:0;width:100%;height:100%;z-index:0;display:block;background:#07090c}
-.entry{position:relative;z-index:1;color:#f4efe8;min-height:100%}
-.entry .hero{padding-top:max(28px,env(safe-area-inset-top,0px));height:clamp(250px,36vh,380px);display:flex;flex-direction:column;justify-content:flex-start}
-.entry .kicker{font:700 .72rem/1 var(--body);letter-spacing:.22em;text-transform:uppercase;color:#f5b37a}
-.entry .logo{font-family:"Racing Sans One","Arial Black",Impact,sans-serif;font-weight:400;font-size:clamp(3.4rem,17vw,7rem);line-height:.9;margin:10px 0 0;letter-spacing:.01em;color:#fff;
-  text-shadow:0 2px 0 #0b0d10,0 6px 18px rgba(0,0,0,.55);transform:skewX(-6deg);transform-origin:left bottom;animation:logoIn .9s cubic-bezier(.2,1.4,.4,1) both}
-.entry .logo span{display:block;color:#ff6a1a;text-shadow:0 2px 0 #b8460c,0 4px 0 #6e2606,0 12px 30px rgba(255,106,26,.5)}
-.entry .tag{max-width:min(30ch,64vw);color:#d9d2c8;margin:14px 0 0;font-size:1rem;animation:fadeUp .8s .25s both}
-.entry .glass{background:rgba(10,12,16,.74);border:1px solid rgba(255,255,255,.12);border-radius:16px;padding:16px;-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);
-  box-shadow:0 20px 50px rgba(0,0,0,.45);color:#f4efe8;animation:fadeUp .8s .4s both}
-.entry .glass .label{color:rgba(255,255,255,.62)}
-.entry .glass input,.entry .glass select{background:rgba(255,255,255,.07);border-color:rgba(255,255,255,.18);color:#fff;color-scheme:dark}
-.entry .glass input::placeholder{color:rgba(255,255,255,.4)}
+.arena-cv{position:fixed;inset:0;width:100%;height:100%;z-index:0;display:block;background:#05070b}
+.entry{position:relative;z-index:1;color:#f4efe8;min-height:100%;padding-bottom:24px}
+.entry .hero{padding-top:max(36px,calc(env(safe-area-inset-top,0px) + 24px));padding-bottom:22px;text-align:center}
+.entry .logo{font-family:"Racing Sans One","Arial Black",Impact,sans-serif;font-weight:400;line-height:.86;margin:0;display:flex;flex-direction:column;align-items:center;animation:logoIn .9s cubic-bezier(.2,1.4,.4,1) both}
+.entry .logo .w{font-size:clamp(3.2rem,15vw,6.4rem);color:#fff;text-shadow:0 3px 0 #9aa3ad,0 8px 22px rgba(0,0,0,.6);transform:skewX(-7deg)}
+.entry .logo .o{font-size:clamp(4.2rem,21vw,8.6rem);filter:drop-shadow(0 4px 0 #6a2205) drop-shadow(0 0 26px rgba(255,100,20,.55));transform:skewX(-7deg);margin-top:-.04em}
+.entry .logo .o span{background:linear-gradient(180deg,#ffd27a 0%,#ff8a2a 38%,#f05a10 62%,#b33508 100%);-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent}
+.entry .tag{margin:14px auto 0;color:#f1ece6;font-weight:600;font-size:clamp(1rem,3.6vw,1.3rem);text-shadow:0 2px 10px rgba(0,0,0,.7);animation:fadeUp .8s .25s both}
+.entry .glass{max-width:640px;margin:0 auto;background:rgba(14,14,16,.62);border:1px solid rgba(255,160,90,.28);border-radius:18px;padding:18px;-webkit-backdrop-filter:blur(14px) saturate(1.2);backdrop-filter:blur(14px) saturate(1.2);
+  box-shadow:0 24px 60px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.06);color:#f4efe8;animation:fadeUp .8s .4s both}
+.entry .glass .label{color:rgba(255,255,255,.7);letter-spacing:.14em}
+.entry .glass input,.entry .glass select{background:rgba(0,0,0,.35);border-color:rgba(255,255,255,.16);color:#fff;color-scheme:dark}
+.entry .glass input:focus{border-color:#ff7a2e;outline:none;box-shadow:0 0 0 3px rgba(255,122,46,.25)}
+.entry .glass input::placeholder{color:rgba(255,255,255,.38)}
 .entry .glass .btn{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.16);color:#fff}
-.entry .glass .btn.primary{background:#e35a12;border-color:#e35a12;color:#fff;box-shadow:0 6px 20px rgba(227,90,18,.4)}
-.entry .tabsel{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;background:rgba(255,255,255,.06);padding:4px;border-radius:12px}
-.entry .tabsel button{border:0;background:transparent;color:rgba(255,255,255,.7);font-weight:700;padding:10px 4px;border-radius:9px;min-height:42px;cursor:pointer}
-.entry .tabsel button.on{background:#e35a12;color:#fff}
-.entry .foot{color:rgba(255,255,255,.45);font-size:.78rem;text-align:center;margin-top:14px}
+.entry .glass .btn.primary{background:linear-gradient(180deg,#ff8a3a,#e8520e);border-color:#ff7a2e;color:#fff;box-shadow:0 8px 26px rgba(232,82,14,.45)}
+.entry .cta{width:100%;min-height:54px;font-size:1.05rem;letter-spacing:.06em;text-transform:uppercase;font-weight:800}
+.entry .tabsel{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.1);padding:4px;border-radius:999px}
+.entry .tabsel button{border:0;background:transparent;color:#fff;font-weight:700;padding:10px 4px;border-radius:999px;min-height:44px;cursor:pointer;font-size:.95rem}
+.entry .tabsel button.on{background:linear-gradient(180deg,#ff8a3a,#e8520e);box-shadow:0 4px 16px rgba(232,82,14,.5)}
+.entry .foot{color:rgba(255,255,255,.75);font-size:.85rem;display:flex;align-items:center;justify-content:center;gap:10px;margin-top:16px;text-shadow:0 1px 6px rgba(0,0,0,.8)}
+.entry .foot::before,.entry .foot::after{content:"";height:1px;width:40px;background:rgba(255,255,255,.25)}
+.entry .bars{display:inline-flex;align-items:flex-end;gap:2px;height:14px}
+.entry .bars i{width:3px;background:#ff7a2e;border-radius:1px}
+.entry .bars i:nth-child(1){height:6px}.entry .bars i:nth-child(2){height:10px}.entry .bars i:nth-child(3){height:14px}
+.entry .live{position:fixed;top:max(24px,env(safe-area-inset-top,0px));right:28px;display:none;flex-direction:column;align-items:flex-end;gap:10px}
+.entry .live .pill{display:inline-flex;align-items:center;gap:8px;border:1px solid rgba(255,255,255,.25);background:rgba(0,0,0,.45);border-radius:999px;padding:7px 14px;font:700 .78rem/1 var(--body);letter-spacing:.2em;text-transform:uppercase}
+.entry .live .pill i{width:9px;height:9px;border-radius:50%;background:#ff6a1a;box-shadow:0 0 10px #ff6a1a;animation:pulse 1.6s infinite}
+.entry .live .stats{display:flex;background:rgba(0,0,0,.45);border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:10px 4px}
+.entry .live .stats div{padding:0 14px;text-align:center;border-left:1px solid rgba(255,255,255,.15)}
+.entry .live .stats div:first-child{border-left:0}
+.entry .live .stats b{display:block;color:#ff7a2e;font:800 1.15rem/1.1 var(--body)}
+.entry .live .stats span{font-size:.7rem;letter-spacing:.1em;color:rgba(255,255,255,.75)}
+@media (min-width:1180px){.entry .live{display:flex}}
+@media (min-width:1000px){.entry .hero{padding-top:64px}}
+@media (max-width:520px){.entry .foot::before,.entry .foot::after{display:none}.entry .foot{font-size:.8rem}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
 @keyframes logoIn{from{opacity:0;transform:skewX(-6deg) translateY(30px) scale(.9)}to{opacity:1;transform:skewX(-6deg)}}
 @keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
@@ -501,70 +519,98 @@ function startArena() {
   cancelAnimationFrame(arenaRaf);
   const ctx = cv.getContext("2d");
   const still = matchMedia("(prefers-reduced-motion: reduce)").matches;
-  let W, H, DPR, floor, ballBase, ballShade, R, bx, floorY, horizon;
-  // generatore pseudo-casuale stabile: il parquet è sempre uguale
+  let W, H, DPR, scene, ballBase, ballShade, R, bx, floorY, horizon, wide, bounceH;
   let seed = 7; const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+  const glowDot = (g, x, y, r, rgb, a) => { const rg = g.createRadialGradient(x, y, 0, x, y, r); rg.addColorStop(0, `rgba(${rgb},${a})`); rg.addColorStop(1, `rgba(${rgb},0)`); g.fillStyle = rg; g.fillRect(x - r, y - r, r * 2, r * 2); };
 
-  function buildFloor() {
-    floor = document.createElement("canvas"); floor.width = W * DPR; floor.height = H * DPR;
-    const g = floor.getContext("2d"); g.scale(DPR, DPR);
-    horizon = Math.min(H * 0.34, 330);
-    // cielo del palazzetto: buio con luci lontane
-    const sky = g.createLinearGradient(0, 0, 0, horizon); sky.addColorStop(0, "#05070a"); sky.addColorStop(1, "#141922");
-    g.fillStyle = sky; g.fillRect(0, 0, W, horizon + 2);
-    seed = 11;
-    for (let i = 0; i < 26; i++) {
-      const x = rnd() * W, y = horizon * (0.15 + rnd() * 0.75), r = 6 + rnd() * 22;
-      const rg = g.createRadialGradient(x, y, 0, x, y, r); rg.addColorStop(0, `rgba(255,${190 + rnd() * 50 | 0},140,${0.10 + rnd() * 0.18})`); rg.addColorStop(1, "rgba(255,200,140,0)");
-      g.fillStyle = rg; g.fillRect(x - r, y - r, r * 2, r * 2);
+  function buildScene() {
+    scene = document.createElement("canvas"); scene.width = W * DPR; scene.height = H * DPR;
+    const g = scene.getContext("2d"); g.scale(DPR, DPR);
+    horizon = wide ? H * 0.7 : H * 0.74;
+    // fondo: arena buia
+    const bg = g.createLinearGradient(0, 0, 0, horizon); bg.addColorStop(0, "#04060a"); bg.addColorStop(0.55, "#0b1220"); bg.addColorStop(1, "#141b29");
+    g.fillStyle = bg; g.fillRect(0, 0, W, horizon + 2);
+    // tribune: anelli di pubblico con nastri LED arancioni
+    seed = 21;
+    const tiers = [[0.2, 0.36], [0.38, 0.55], [0.57, 0.72]];
+    tiers.forEach(([a, b], ti) => {
+      const y0 = horizon * a, y1 = horizon * b, curve = H * 0.035;
+      for (let i = 0; i < W * (y1 - y0) / 90; i++) {
+        const x = rnd() * W, t = rnd(), y = y0 + (y1 - y0) * t - curve * Math.sin((x / W) * Math.PI);
+        const warm = rnd();
+        g.fillStyle = warm > 0.86 ? `rgba(255,${150 + rnd() * 80 | 0},90,${0.35 + rnd() * 0.35})` : `rgba(${120 + rnd() * 60 | 0},${110 + rnd() * 50 | 0},${120 + rnd() * 50 | 0},${0.10 + rnd() * 0.16})`;
+        g.beginPath(); g.arc(x, y, 0.8 + rnd() * 1.6 + ti * 0.3, 0, Math.PI * 2); g.fill();
+      }
+      // nastro LED sotto ogni anello
+      const ly = y1 + 3;
+      g.save(); g.shadowColor = "rgba(255,110,30,.9)"; g.shadowBlur = 18;
+      g.strokeStyle = ti === 2 ? "rgba(255,98,24,.85)" : "rgba(255,120,40,.55)"; g.lineWidth = ti === 2 ? 7 : 4;
+      g.beginPath(); g.moveTo(-10, ly); g.quadraticCurveTo(W / 2, ly - curve * 2.1, W + 10, ly); g.stroke(); g.restore();
+    });
+    // luci del soffitto
+    seed = 5;
+    for (let i = 0; i < 46; i++) {
+      const side = i % 2 ? 1 : -1, k = rnd();
+      const x = W / 2 + side * (W * 0.12 + k * W * 0.42), y = H * 0.02 + k * k * horizon * 0.22 + rnd() * 10;
+      glowDot(g, x, y, 14 + rnd() * 10, "220,235,255", 0.35); g.fillStyle = "rgba(255,255,255,.95)"; g.beginPath(); g.arc(x, y, 1.6 + rnd() * 1.4, 0, Math.PI * 2); g.fill();
     }
-    // parquet in prospettiva: assi lungo il campo
-    const f = H * 0.95, cam = 1.55, cx = W / 2;
+    // maxischermo al centro con anello arancione
+    const jx = W / 2, jw = Math.min(W * 0.2, 240), jh = jw * 0.34, jy = -jh * 0.7;
+    g.fillStyle = "#0d121b"; g.fillRect(jx - jw / 2, jy, jw, jh);
+    const scr = g.createLinearGradient(0, jy, 0, jy + jh); scr.addColorStop(0, "rgba(255,140,60,.28)"); scr.addColorStop(1, "rgba(255,90,20,.12)");
+    g.fillStyle = scr; g.fillRect(jx - jw / 2 + 6, jy + 4, jw - 12, jh - 10);
+    g.save(); g.shadowColor = "rgba(255,100,30,1)"; g.shadowBlur = 26; g.strokeStyle = "#ff6a1a"; g.lineWidth = 6;
+    g.beginPath(); g.ellipse(jx, jy + jh + jh * 0.12, jw * 0.42, jh * 0.16, 0, 0, Math.PI * 2); g.stroke(); g.restore();
+    g.fillStyle = "#0a0e15"; g.beginPath(); g.ellipse(jx, jy + jh + jh * 0.28, jw * 0.34, jh * 0.2, 0, 0, Math.PI); g.fill();
+    // fasci di luce
+    for (const [x0, x1] of [[0.32, 0.18], [0.68, 0.84], [0.5, 0.5]]) {
+      const beam = g.createLinearGradient(0, 0, 0, horizon); beam.addColorStop(0, "rgba(200,220,255,.10)"); beam.addColorStop(1, "rgba(200,220,255,0)");
+      g.fillStyle = beam; g.beginPath(); g.moveTo(W * x0 - 8, 0); g.lineTo(W * x0 + 8, 0); g.lineTo(W * x1 + 90, horizon); g.lineTo(W * x1 - 90, horizon); g.closePath(); g.fill();
+    }
+    // parquet lucido in prospettiva
+    const f = H * 0.9, cam = 1.2, cx = W / 2;
     const P = (X, Z) => [cx + (f * X) / Z, horizon + (f * cam) / Z];
-    const zNear = (f * cam) / (H - horizon) * 0.98, zFar = 40;
-    seed = 3;
-    const bw = 0.075;
-    for (let X = -9; X < 9; X += bw) {
-      let Z = zNear - rnd() * 2;
-      const hue = 30 + rnd() * 6;
+    const zNear = ((f * cam) / (H - horizon)) * 0.97, zFar = 60;
+    seed = 3; const bw = 0.09;
+    for (let X = -30; X < 30; X += bw) {
+      let Z = zNear - rnd() * 2; const hue = 26 + rnd() * 7;
       while (Z < zFar) {
-        const len = 1.4 + rnd() * 2.4, z2 = Math.min(Z + len, zFar);
-        const l = 50 + rnd() * 17, sat = 48 + rnd() * 14;
+        const z2 = Math.min(Z + 1.6 + rnd() * 2.6, zFar), l = 38 + rnd() * 9, sat = 52 + rnd() * 10;
         const a = P(X, Z), b = P(X + bw, Z), c = P(X + bw, z2), d = P(X, z2);
-        g.fillStyle = `hsl(${hue + rnd() * 4},${sat}%,${l}%)`;
+        if (Math.max(a[0], b[0]) < -50 || Math.min(a[0], b[0]) > W + 50) { Z = z2; continue; }
+        g.fillStyle = `hsl(${hue},${sat}%,${l}%)`;
         g.beginPath(); g.moveTo(a[0], a[1]); g.lineTo(b[0], b[1]); g.lineTo(c[0], c[1]); g.lineTo(d[0], d[1]); g.closePath(); g.fill();
-        // fuga tra le assi
-        g.strokeStyle = "rgba(60,30,10,.18)"; g.lineWidth = Math.max(0.3, (f * 0.004) / Z); g.beginPath(); g.moveTo(a[0], a[1]); g.lineTo(d[0], d[1]); g.stroke();
         Z = z2;
       }
     }
-    // linee del campo (vista dalla linea di fondo verso il centrocampo)
-    const line = (pts, width = 0.05, col = "rgba(255,255,255,.82)") => {
-      for (let i = 0; i < pts.length - 1; i++) {
-        const [x1, z1] = pts[i], [x2, z2] = pts[i + 1]; if (z1 < zNear * 0.7 && z2 < zNear * 0.7) continue;
-        const a = P(x1, Math.max(z1, zNear * 0.7)), b = P(x2, Math.max(z2, zNear * 0.7));
-        g.strokeStyle = col; g.lineCap = "round"; g.lineWidth = Math.max(0.6, (f * width) / ((z1 + z2) / 2));
-        g.beginPath(); g.moveTo(a[0], a[1]); g.lineTo(b[0], b[1]); g.stroke();
-      }
-    };
-    const arc = (x0, z0, r, a0, a1, n = 60) => Array.from({ length: n + 1 }, (_, i) => { const t = a0 + ((a1 - a0) * i) / n; return [x0 + r * Math.cos(t), z0 + r * Math.sin(t)]; });
-    const base = 2.2, rim = base + 1.6;
-    // area colorata
-    const pa = [[-2.45, base], [2.45, base], [2.45, base + 5.8], [-2.45, base + 5.8]].map(([x, z]) => P(x, z));
-    g.fillStyle = "rgba(227,90,18,.42)"; g.beginPath(); pa.forEach(([x, y], i) => (i ? g.lineTo(x, y) : g.moveTo(x, y))); g.closePath(); g.fill();
-    line([[-7.5, base], [7.5, base]]); line([[-7.5, base], [-7.5, zFar]]); line([[7.5, base], [7.5, zFar]]);
-    line([[-2.45, base], [-2.45, base + 5.8], [2.45, base + 5.8], [2.45, base]]);
-    line(arc(0, base + 5.8, 1.8, 0, Math.PI));
-    line([[-6.6, base], [-6.6, rim]]); line([[6.6, base], [6.6, rim]]); line(arc(0, rim, 6.75, Math.acos(6.6 / 6.75) * 0 + 0.21, Math.PI - 0.21, 90));
-    line([[-7.5, base + 14], [7.5, base + 14]]); line(arc(0, base + 14, 1.8, 0, Math.PI * 2, 80));
-    const cc = P(0, base + 14); g.fillStyle = "rgba(227,90,18,.35)"; g.beginPath(); g.ellipse(cc[0], cc[1], (f * 1.8) / (base + 14), (f * cam) / (base + 14) - (f * cam) / (base + 15.8), 0, 0, Math.PI * 2); g.fill();
-    // lucido e buio verso il fondo
-    const fog = g.createLinearGradient(0, horizon, 0, H); fog.addColorStop(0, "rgba(5,7,10,.8)"); fog.addColorStop(0.1, "rgba(5,7,10,.3)"); fog.addColorStop(1, "rgba(5,7,10,.5)");
-    g.fillStyle = fog; g.fillRect(0, horizon, W, H - horizon);
-    const spot = g.createRadialGradient(bx, floorY + 10, 0, bx, floorY + 10, Math.max(W, H) * 0.55); spot.addColorStop(0, "rgba(255,226,180,.28)"); spot.addColorStop(1, "rgba(255,226,180,0)");
-    g.fillStyle = spot; g.fillRect(0, horizon, W, H - horizon);
-    const gloss = g.createLinearGradient(0, horizon, 0, H); gloss.addColorStop(0, "rgba(255,255,255,0)"); gloss.addColorStop(0.5, "rgba(255,255,255,.05)"); gloss.addColorStop(1, "rgba(255,255,255,0)");
-    g.fillStyle = gloss; g.fillRect(0, horizon, W, H - horizon);
+    // linea laterale bianca
+    const sl = (X) => { const a = P(X, zNear), b = P(X, zFar); g.strokeStyle = "rgba(255,255,255,.75)"; g.lineWidth = 3; g.beginPath(); g.moveTo(a[0], a[1]); g.lineTo(b[0], b[1]); g.stroke(); };
+    sl(-6.5); sl(6.5);
+    // riflessi: strisce di luce arancione e bianca sul legno
+    seed = 41;
+    for (let i = 0; i < 16; i++) {
+      const x = rnd() * W, w = 10 + rnd() * 26, orange = rnd() > 0.4;
+      const rf = g.createLinearGradient(0, horizon, 0, H); rf.addColorStop(0, orange ? "rgba(255,120,40,.28)" : "rgba(255,240,220,.2)"); rf.addColorStop(1, "rgba(255,140,60,0)");
+      g.fillStyle = rf; g.fillRect(x - w / 2, horizon, w, (H - horizon) * (0.4 + rnd() * 0.6));
+    }
+    const haze = g.createLinearGradient(0, horizon - 30, 0, horizon + (H - horizon) * 0.25); haze.addColorStop(0, "rgba(11,16,26,1)"); haze.addColorStop(0.35, "rgba(11,16,26,.55)"); haze.addColorStop(1, "rgba(11,16,26,0)");
+    g.fillStyle = haze; g.fillRect(0, horizon - 30, W, (H - horizon) * 0.25 + 30);
+    const sheen = g.createLinearGradient(0, horizon, 0, H); sheen.addColorStop(0, "rgba(255,170,90,.18)"); sheen.addColorStop(0.3, "rgba(255,170,90,.06)"); sheen.addColorStop(1, "rgba(0,0,0,.45)");
+    g.fillStyle = sheen; g.fillRect(0, horizon, W, H - horizon);
+    // canestro sulla destra (schermi larghi)
+    if (wide) {
+      const px = W * 0.9, base = horizon + (H - horizon) * 0.25, top = horizon * 0.62, bw2 = W * 0.065, bh2 = bw2 * 0.62;
+      g.fillStyle = "#1a1f28"; g.fillRect(px + bw2 * 0.15, top + bh2, 8, base - top - bh2);
+      g.save(); g.shadowColor = "rgba(255,245,230,.9)"; g.shadowBlur = 14; g.strokeStyle = "rgba(255,248,240,.95)"; g.lineWidth = 3;
+      g.strokeRect(px - bw2 / 2, top, bw2, bh2); g.strokeStyle = "rgba(255,90,20,.9)"; g.strokeRect(px - bw2 * 0.17, top + bh2 * 0.35, bw2 * 0.34, bh2 * 0.4); g.restore();
+      g.save(); g.shadowColor = "rgba(255,90,20,1)"; g.shadowBlur = 12; g.strokeStyle = "#ff5a14"; g.lineWidth = 3;
+      g.beginPath(); g.ellipse(px, top + bh2 + 4, bw2 * 0.2, 4, 0, 0, Math.PI * 2); g.stroke(); g.restore();
+      g.strokeStyle = "rgba(255,255,255,.55)"; g.lineWidth = 1;
+      for (let k = -3; k <= 3; k++) { g.beginPath(); g.moveTo(px + k * bw2 * 0.065, top + bh2 + 6); g.lineTo(px + k * bw2 * 0.04, top + bh2 + bw2 * 0.28); g.stroke(); }
+    }
+    // vignettatura
+    const vg = g.createRadialGradient(W / 2, H * 0.45, Math.min(W, H) * 0.3, W / 2, H * 0.45, Math.max(W, H) * 0.8);
+    vg.addColorStop(0, "rgba(0,0,0,0)"); vg.addColorStop(1, "rgba(0,0,0,.6)"); g.fillStyle = vg; g.fillRect(0, 0, W, H);
   }
 
   function buildBall() {
@@ -573,85 +619,88 @@ function startArena() {
     const g = ballBase.getContext("2d"); g.scale(DPR, DPR);
     g.beginPath(); g.arc(R, R, R, 0, Math.PI * 2); g.clip();
     const body = g.createRadialGradient(R * 0.7, R * 0.6, R * 0.1, R, R, R * 1.05);
-    body.addColorStop(0, "#f08a3e"); body.addColorStop(0.55, "#d4621f"); body.addColorStop(1, "#7a2f0c");
+    body.addColorStop(0, "#e8853f"); body.addColorStop(0.55, "#c4561c"); body.addColorStop(1, "#5e2109");
     g.fillStyle = body; g.fillRect(0, 0, R * 2, R * 2);
-    // grana del cuoio
-    seed = 99; const n = Math.round(R * R * 1.6);
+    seed = 99; const n = Math.round(R * R * 1.8);
     for (let i = 0; i < n; i++) {
       const x = rnd() * R * 2, y = rnd() * R * 2, s = 0.5 + rnd() * 0.9;
-      g.fillStyle = rnd() > 0.5 ? "rgba(255,210,170,.13)" : "rgba(60,20,5,.16)";
+      g.fillStyle = rnd() > 0.5 ? "rgba(255,210,170,.14)" : "rgba(50,15,3,.18)";
       g.beginPath(); g.arc(x, y, s, 0, Math.PI * 2); g.fill();
     }
     ballShade = document.createElement("canvas"); ballShade.width = ballShade.height = S;
     const h = ballShade.getContext("2d"); h.scale(DPR, DPR);
-    const rimShade = h.createRadialGradient(R * 0.85, R * 0.8, R * 0.55, R, R, R);
-    rimShade.addColorStop(0, "rgba(0,0,0,0)"); rimShade.addColorStop(1, "rgba(20,6,0,.55)");
+    const rimShade = h.createRadialGradient(R * 0.8, R * 0.75, R * 0.5, R, R, R);
+    rimShade.addColorStop(0, "rgba(0,0,0,0)"); rimShade.addColorStop(1, "rgba(15,4,0,.62)");
     h.fillStyle = rimShade; h.beginPath(); h.arc(R, R, R, 0, Math.PI * 2); h.fill();
-    const spec = h.createRadialGradient(R * 0.62, R * 0.5, 0, R * 0.62, R * 0.5, R * 0.55);
-    spec.addColorStop(0, "rgba(255,240,220,.38)"); spec.addColorStop(1, "rgba(255,240,220,0)");
+    const spec = h.createRadialGradient(R * 0.6, R * 0.45, 0, R * 0.6, R * 0.45, R * 0.5);
+    spec.addColorStop(0, "rgba(255,240,220,.4)"); spec.addColorStop(1, "rgba(255,240,220,0)");
     h.fillStyle = spec; h.beginPath(); h.arc(R, R, R, 0, Math.PI * 2); h.fill();
+    // luce arancione dal lato del palazzetto
+    const rimLight = h.createRadialGradient(R * 1.7, R * 1.1, 0, R * 1.7, R * 1.1, R);
+    rimLight.addColorStop(0, "rgba(255,140,60,.35)"); rimLight.addColorStop(1, "rgba(255,140,60,0)");
+    h.fillStyle = rimLight; h.beginPath(); h.arc(R, R, R, 0, Math.PI * 2); h.fill();
   }
 
-  // cuciture del pallone: curve sulla sfera, ruotate e proiettate
   const seams = (() => {
     const out = [], N = 72, c = 0.64, rr = Math.sqrt(1 - c * c);
     const mk = (fn) => out.push(Array.from({ length: N + 1 }, (_, i) => fn((i / N) * Math.PI * 2)));
-    mk((t) => [Math.sin(t), 0, Math.cos(t)]);
-    mk((t) => [0, Math.sin(t), Math.cos(t)]);
-    mk((t) => [c, rr * Math.sin(t), rr * Math.cos(t)]);
-    mk((t) => [-c, rr * Math.sin(t), rr * Math.cos(t)]);
+    mk((t) => [Math.sin(t), 0, Math.cos(t)]); mk((t) => [0, Math.sin(t), Math.cos(t)]);
+    mk((t) => [c, rr * Math.sin(t), rr * Math.cos(t)]); mk((t) => [-c, rr * Math.sin(t), rr * Math.cos(t)]);
     return out;
   })();
   function rot([x, y, z], a) {
-    let X = x * Math.cos(a) + z * Math.sin(a), Z = -x * Math.sin(a) + z * Math.cos(a), Y = y;      // giro
-    const tx = 0.55, Y2 = Y * Math.cos(tx) - Z * Math.sin(tx), Z2 = Y * Math.sin(tx) + Z * Math.cos(tx); // inclinazione
+    const X = x * Math.cos(a) + z * Math.sin(a), Z = -x * Math.sin(a) + z * Math.cos(a), Y = y;
+    const tx = 0.55, Y2 = Y * Math.cos(tx) - Z * Math.sin(tx), Z2 = Y * Math.sin(tx) + Z * Math.cos(tx);
     const tz = 0.45; return [X * Math.cos(tz) - Y2 * Math.sin(tz), X * Math.sin(tz) + Y2 * Math.cos(tz), Z2];
   }
 
   function layout() {
     DPR = Math.min(window.devicePixelRatio || 1, 2);
-    W = innerWidth; H = innerHeight;
+    W = innerWidth; H = innerHeight; wide = W >= 1000;
     cv.width = W * DPR; cv.height = H * DPR;
-    const wide = W >= 1000;
-    R = wide ? Math.max(60, Math.min(W * 0.06, 96)) : Math.max(36, Math.min(W * 0.12, H * 0.09, 70));
-    if (wide) { const side = (W - 720) / 2; bx = W - side / 2; floorY = H * 0.74; }
-    else { bx = W - R - Math.max(16, W * 0.05); floorY = Math.min(H * 0.34, 330) + 22; }
-    buildFloor(); buildBall();
+    if (wide) { R = Math.max(70, Math.min(W * 0.075, 120)); bx = W * 0.865; floorY = H * 0.9; bounceH = H * 0.07; }
+    else {
+      R = Math.max(34, Math.min(W * 0.11, 56));
+      const card = document.querySelector(".entry .glass")?.getBoundingClientRect();
+      const free = H - 12 - (card ? card.bottom + 40 : H * 0.8);
+      bx = W - R - 18; floorY = H - 14;
+      bounceH = Math.max(0, Math.min(free - R * 2, 90));
+    }
+    buildScene(); buildBall();
   }
 
   const T0 = performance.now();
   function frame(now) {
-    if (!document.body.contains(cv)) return; // uscito dalla schermata
+    if (!document.body.contains(cv)) return;
     const t = still ? 0.35 : (now - T0) / 1000;
     ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
-    ctx.drawImage(floor, 0, 0, W, H);
-    // rimbalzo: parabola, schiacciamento al contatto
-    const per = 1.35, p = (t % per) / per, hgt = (W >= 1000 ? H * 0.38 : Math.min(H * 0.17, 150)) * 4 * p * (1 - p);
-    const contact = 1 - Math.min(1, hgt / (R * 0.35));
-    const sy = 1 - 0.13 * contact, sx = 1 + 0.1 * contact;
-    const by = floorY - R * sy - hgt;
-    // ombra
-    const sh = 1 - Math.min(1, hgt / 220);
-    ctx.fillStyle = `rgba(0,0,0,${0.22 + 0.4 * sh})`;
-    ctx.beginPath(); ctx.ellipse(bx, floorY + 2, R * (0.55 + 0.45 * sh), R * (0.12 + 0.1 * sh), 0, 0, Math.PI * 2); ctx.fill();
-    // pallone
-    ctx.save(); ctx.translate(bx, floorY); ctx.scale(sx, sy); ctx.translate(-bx, -floorY);
-    const top = by + R * sy - R; // compensa lo schiacciamento
-    ctx.drawImage(ballBase, bx - R, top, R * 2, R * 2);
-    const a = t * 2.4;
-    ctx.lineCap = "round";
+    ctx.drawImage(scene, 0, 0, W, H);
+    const per = 1.25, p = (t % per) / per, hgt = bounceH * 4 * p * (1 - p);
+    const contact = bounceH > 0 ? 1 - Math.min(1, hgt / (R * 0.35)) : 0;
+    const sy = 1 - 0.12 * contact, sx = 1 + 0.09 * contact;
+    // ombra e riflesso sul parquet
+    const sh = 1 - Math.min(1, hgt / 160);
+    ctx.fillStyle = `rgba(0,0,0,${0.3 + 0.4 * sh})`;
+    ctx.beginPath(); ctx.ellipse(bx, floorY + 2, R * (0.6 + 0.4 * sh), R * (0.1 + 0.08 * sh), 0, 0, Math.PI * 2); ctx.fill();
+    const top = floorY - R * sy - hgt - R + R * sy - (R * sy - R) ;
+    const cyBall = floorY - hgt - R * sy;
+    // riflesso capovolto, tenue
+    ctx.save(); ctx.globalAlpha = 0.18 * sh; ctx.translate(bx, floorY + (floorY - cyBall)); ctx.scale(sx, -sy); ctx.drawImage(ballBase, -R, -R, R * 2, R * 2); ctx.restore();
+    ctx.save(); ctx.translate(bx, cyBall); ctx.scale(sx, sy);
+    ctx.drawImage(ballBase, -R, -R, R * 2, R * 2);
+    const a = t * 2.2; ctx.lineCap = "round";
     for (const curve of seams) {
       let prev = null;
       for (const pt of curve) {
-        const [x, y, z] = rot(pt, a), q = [bx + x * R * 0.985, top + R - y * R * 0.985, z];
+        const [x, y, z] = rot(pt, a), q = [x * R * 0.985, -y * R * 0.985, z];
         if (prev && prev[2] > 0 && q[2] > 0) {
-          ctx.strokeStyle = `rgba(28,12,4,${Math.min(1, 0.35 + q[2])})`; ctx.lineWidth = R * 0.06 * (0.45 + 0.55 * q[2]);
+          ctx.strokeStyle = `rgba(22,9,3,${Math.min(1, 0.35 + q[2])})`; ctx.lineWidth = R * 0.055 * (0.45 + 0.55 * q[2]);
           ctx.beginPath(); ctx.moveTo(prev[0], prev[1]); ctx.lineTo(q[0], q[1]); ctx.stroke();
         }
         prev = q;
       }
     }
-    ctx.drawImage(ballShade, bx - R, top, R * 2, R * 2);
+    ctx.drawImage(ballShade, -R, -R, R * 2, R * 2);
     ctx.restore();
     if (!still) arenaRaf = requestAnimationFrame(frame);
   }
@@ -660,34 +709,38 @@ function startArena() {
   arenaRaf = requestAnimationFrame(frame);
 }
 
+const default_rules_sc = [["+1", "PTS"], ["+1", "REB"], ["+2", "AST"], ["+3", "STL"], ["+3", "BLK"]];
 function loginView() {
   const f = (id, label, type = "text", extra = "") => `<label class="field"><span class="label">${label}</span><input id="${id}" type="${type}" ${extra}></label>`;
   const forms = {
     accedi: `${f("lg-code", "Codice lega", "text", 'autocapitalize="characters" maxlength="6" placeholder="Es. 7F3K9A"')}
              ${f("lg-team", "Nome squadra")}${f("lg-pin", "PIN", "password", 'inputmode="numeric" maxlength="8"')}
-             <button class="btn primary" data-act="login">Entra</button>`,
+             <button class="btn primary cta" data-act="login">Entra nell'arena <span aria-hidden="true">→</span></button>`,
     entra: `${f("lg-code", "Codice lega (te lo dà chi l'ha creata)", "text", 'autocapitalize="characters" maxlength="6"')}
              ${f("lg-team", "Nome della tua squadra")}${f("lg-owner", "Il tuo nome")}
              ${f("lg-pin", "Scegli un PIN (min 4 cifre)", "password", 'inputmode="numeric" maxlength="8"')}
-             <button class="btn primary" data-act="join">Unisciti alla lega</button>`,
+             <button class="btn primary cta" data-act="join">Unisciti alla lega <span aria-hidden="true">→</span></button>`,
     crea: `${f("lg-name", "Nome della lega", "text", 'placeholder="Es. Lega del Martedì"')}
              <label class="field"><span class="label">Formato</span><select id="lg-mode">
                <option value="h2h">Sfide quotidiane + playoff (stile NBA)</option>
                <option value="total">Classifica a punti totali</option></select></label>
              ${f("lg-team", "Nome della tua squadra")}${f("lg-owner", "Il tuo nome")}
              ${f("lg-pin", "Scegli un PIN (min 4 cifre)", "password", 'inputmode="numeric" maxlength="8"')}
-             <button class="btn primary" data-act="create">Crea lega</button>`,
+             <button class="btn primary cta" data-act="create">Crea la lega <span aria-hidden="true">→</span></button>`,
   };
+  const sc = default_rules_sc;
   return `<canvas class="arena-cv" id="arena" aria-hidden="true"></canvas>
   <div class="entry">
-    <div class="hero"><div class="kicker">Lega privata tra amici</div>
-      <h1 class="logo">Fanta<span>NBA</span></h1>
-      <p class="tag">Asta dal telefono, quintetto ogni sera, punti dalle statistiche NBA vere.</p></div>
+    <div class="live" aria-hidden="true"><span class="pill"><i></i>Live season</span>
+      <div class="stats">${sc.map(([v, k]) => `<div><b>${v}</b><span>${k}</span></div>`).join("")}</div></div>
+    <div class="hero">
+      <h1 class="logo"><span class="w">Fanta</span><span class="o"><span>NBA</span></span></h1>
+      <p class="tag">La tua lega. Le tue scelte. Ogni notte conta.</p></div>
     <section class="glass stack">
       <div class="tabsel">${["accedi:Accedi", "entra:Ho un codice", "crea:Crea lega"].map((x) => { const [k, l] = x.split(":"); return `<button class="${loginMode === k ? "on" : ""}" data-mode="${k}">${l}</button>`; }).join("")}</div>
       <div class="stack" id="login-form">${forms[loginMode]}</div>
     </section>
-    <div class="foot">Statistiche e infortuni da ESPN · aggiornati in automatico</div>
+    <div class="foot"><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span>Statistiche e infortuni aggiornati in automatico</div>
   </div>`;
 }
 function bindLogin() {
