@@ -527,10 +527,16 @@ function nearestDay(days, from) { return days.find((d) => d >= from) || days[day
 async function oggiView() {
   const days = await gameDays();
   const today = etToday();
-  if (!S.day) {
-    const { data: live } = await sb.from("games").select("game_date").eq("game_date", today).limit(1);
-    S.day = live?.length ? today : nearestDay(days, today);
+  // giornata da mostrare: l'ultima nottata iniziata o finita (la mattina in Italia è quella appena giocata),
+  // altrimenti la prossima in programma
+  if (!S.defaultDay) {
+    const from = S.league.season_start || "2026-10-20";
+    const { data: last } = await sb.from("games").select("game_date").gte("game_date", from).in("state", ["in", "post"]).order("game_date", { ascending: false }).limit(1);
+    const lastDay = last?.[0]?.game_date;
+    const yest = new Date(new Date(today + "T12:00:00Z").getTime() - 864e5).toISOString().slice(0, 10);
+    S.defaultDay = lastDay && lastDay >= yest ? lastDay : nearestDay(days, today);
   }
+  if (!S.day) S.day = S.defaultDay;
   const d = S.day, lid = S.sess.league_id;
   const [games, scores, matchups] = await Promise.all([
     q(sb.from("games").select("*").eq("game_date", d).order("start_time")),
@@ -548,7 +554,7 @@ async function oggiView() {
   if (S.league.status !== "season" && S.league.status !== "finished") {
     main = `<section class="card"><h3>La stagione non è ancora partita</h3><p class="muted">Prima si fa l'asta. Poi l'admin mette la lega su "Stagione" e genera il calendario dalle impostazioni in Lega.</p></section>`;
   } else if (S.league.mode === "h2h" && matchups.length) {
-    main = `<section class="card"><div class="label">Sfide della giornata</div><div class="list">${matchups.map((m) => {
+    main = `<section class="card"><div class="label">Sfide della giornata · tocca per vedere i punti di ogni giocatore</div><div class="list">${[...matchups].sort((x, y) => ([y.home_team, y.away_team].includes(S.sess.team_id)) - ([x.home_team, x.away_team].includes(S.sess.team_id))).map((m) => {
       const a = m.home_team, b = m.away_team;
       if (!b) return `<div class="match"><div class="t">${esc(teamName(a))}</div><div class="muted">riposa</div><div></div></div>`;
       const pa = pts(a), pb = pts(b), mineM = a === S.sess.team_id || b === S.sess.team_id;
@@ -571,7 +577,7 @@ async function oggiView() {
   <div class="stack">
     <div class="row between">
       <button class="btn small" data-day="${prev || ""}" ${prev ? "" : "disabled"}>‹ ${prev ? fmtDay(prev) : ""}</button>
-      <button class="btn small ghost" data-day="${nearestDay(days, today)}">Oggi</button>
+      <button class="btn small ghost" data-day="${S.defaultDay}">Ultima</button>
       <button class="btn small" data-day="${next || ""}" ${next ? "" : "disabled"}>${next ? fmtDay(next) : ""} ›</button>
     </div>
     ${main}
@@ -1190,7 +1196,7 @@ function bindCommon() {
   await loadMyStarters(); renderTabs();
   setInterval(async () => { if (!S.sess || !S.league) return; if (S.tab === "oggi" || S.tab === "classifica") render(); }, 120000);
   setInterval(async () => { if (!S.sess || !S.league) return; await refreshInjuries(); await loadMyStarters(); if (S.tab === "formazione") render(); else renderTabs(); }, 600000);
-  document.addEventListener("visibilitychange", async () => { if (!document.hidden && S.sess && S.league) { try { await loadLeague(); await loadBids(); await refreshInjuries(); await loadMyStarters(); render(); } catch {} } });
+  document.addEventListener("visibilitychange", async () => { if (!document.hidden && S.sess && S.league) { try { S.defaultDay = null; if (S.tab === "oggi") S.day = null; await loadLeague(); await loadBids(); await refreshInjuries(); await loadMyStarters(); render(); } catch {} } });
 })();
 </script>
 </body>
