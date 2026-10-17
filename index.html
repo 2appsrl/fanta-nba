@@ -322,14 +322,17 @@ async function loadBids() {
   S.bids = await q(sb.from("bids").select("*").eq("league_id", S.sess.league_id).eq("player_id", a.player_id).gte("created_at", a.opened_at || "1970-01-01").order("id", { ascending: false }).limit(15));
 }
 
-let channel = null, reloadT = null;
+let channel = null;
+async function reloadRoster() { S.roster = await q(sb.from("roster").select("*").eq("league_id", S.sess.league_id).not("team_id", "is", null)); }
 function subscribe() {
   if (channel) sb.removeChannel(channel);
   const id = S.sess.league_id, f = `league_id=eq.${id}`;
-  const soon = (fn) => { clearTimeout(reloadT); reloadT = setTimeout(fn, 150); };
+  const timers = {};
+  const soon = (fn, key = fn.toString()) => { clearTimeout(timers[key]); timers[key] = setTimeout(fn, 150); };
   channel = sb.channel("lg-" + id)
     .on("postgres_changes", { event: "*", schema: "public", table: "auction", filter: f }, async (p) => {
       const prev = S.auction; S.auction = p.new;
+      if (prev?.status === "open" && p.new?.status !== "open") { try { await reloadRoster(); } catch {} }
       if (p.new?.last_result && JSON.stringify(p.new.last_result) !== JSON.stringify(prev?.last_result)) {
         const r = p.new.last_result; toast(`${P(r.player_id).name} a ${teamName(r.team_id)} per ${r.price}`);
       }
@@ -1048,7 +1051,10 @@ function bindCommon() {
         case "unassign-no": $("#as-confirm").innerHTML = ""; break;
         case "logout": store.del("fantanba.sess"); S.sess = null; S.league = null; if (channel) sb.removeChannel(channel); render(); break;
       }
-    } catch (err) { toast(err.message, true); }
+    } catch (err) {
+      toast(err.message, true);
+      if (/già preso|non è un free agent/i.test(err.message)) { try { await reloadRoster(); render(); } catch {} }
+    }
   };
   const ps = $("#pl-search");
   if (ps) ps.oninput = () => { S.search = ps.value; S.page = 0; const pos = ps.selectionStart; render().then(() => { const n = $("#pl-search"); if (n) { n.focus(); n.setSelectionRange(pos, pos); } }); };
