@@ -195,9 +195,9 @@ const S = {
   tab: store.get("fantanba.tab") || "oggi",
   league: null, teams: [], roster: [], auction: null, bids: [], standings: [],
   players: new Map(), last: new Map(), cur: new Map(), values: new Map(),
-  mk: { give: [], get: [], tradeTo: "", givec: 0, getc: 0, msg: "", fa: null, faAmt: "", faDrop: "", rel: null, newTrade: false, faSearch: "", faCourt: "" },
+  mk: { give: [], get: [], tradeTo: "", givec: 0, getc: 0, msg: "", fa: null, faAmt: "", faDrop: "", rel: null, newTrade: false, faSearch: "", faCourt: "", faBand: "", faPage: 0 },
   day: null, lineupDate: null, lineup: null, openMatch: null,
-  search: "", court: "", onlyFree: true,
+  search: "", court: "", onlyFree: true, band: "", page: 0,
 };
 const me = () => S.teams.find((t) => t.id === S.sess?.team_id);
 const isAdmin = () => !!me()?.is_admin;
@@ -327,18 +327,24 @@ function head(title, sub) {
   <h1 style="margin-bottom:12px">${title}</h1>`;
 }
 
+render.seq = 0;
 async function render() {
   renderTabs();
   const app = $("#app");
   if (!S.sess || !S.league) { app.innerHTML = loginView(); bindLogin(); return; }
+  // solo l'ultima richiesta di disegno vince: evita che una scheda lenta copra quella scelta dopo
+  const ticket = ++render.seq;
+  let html;
   try {
-    if (S.tab === "oggi") app.innerHTML = await oggiView();
-    else if (S.tab === "formazione") app.innerHTML = await formazioneView();
-    else if (S.tab === "asta") app.innerHTML = astaView();
-    else if (S.tab === "classifica") app.innerHTML = await classificaView();
-    else if (S.tab === "mercato") app.innerHTML = await mercatoView();
-    else app.innerHTML = legaView();
-  } catch (e) { app.innerHTML = head("Ops") + `<section class="card">${esc(e.message)}</section>`; }
+    if (S.tab === "oggi") html = await oggiView();
+    else if (S.tab === "formazione") html = await formazioneView();
+    else if (S.tab === "asta") html = astaView();
+    else if (S.tab === "classifica") html = await classificaView();
+    else if (S.tab === "mercato") html = await mercatoView();
+    else html = legaView();
+  } catch (e) { html = head("Ops") + `<section class="card">${esc(e.message)}</section>`; }
+  if (ticket !== render.seq) return;
+  app.innerHTML = html;
   bindCommon(); tick();
 }
 
@@ -562,6 +568,20 @@ function astaView() {
   }).join("")}</tbody></table></div></section>`;
   return head("Asta", `${R().credits} crediti a testa · rosa da ${ro.size} (${ro.bc} BC + ${ro.fc} FC) · max ${ro.max_per_nba_team} per squadra NBA`) + `<div class="stack">${board}${teamsBox}${myRosterBox()}</div>`;
 }
+const PER_PAGE = 30;
+const BANDS = [["", "Tutte"], ["0-10", "fino a 10"], ["11-30", "11–30"], ["31-60", "31–60"], ["61-100", "61–100"], ["101-99999", "oltre 100"]];
+function inBand(list, band) { if (!band) return list; const [lo, hi] = band.split("-").map(Number); return list.filter((p) => { const v = val(p.id); return v >= lo && v <= hi; }); }
+function bandBar(cur, attr) {
+  return `<div class="row" style="gap:6px"><span class="label">Quotazione</span>${BANDS.map(([k, l]) => `<button class="btn small ${cur === k ? "primary" : "ghost"}" data-${attr}="${k}">${l}</button>`).join("")}</div>`;
+}
+function pager(total, page, attr) {
+  const pages = Math.max(1, Math.ceil(total / PER_PAGE));
+  if (pages <= 1) return `<div class="muted" style="font-size:.85rem">${total} giocatori</div>`;
+  return `<div style="display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center"><button class="btn small" data-${attr}="${page - 1}" ${page <= 0 ? "disabled" : ""} aria-label="Pagina precedente">‹ Prec.</button>
+    <span class="muted num" style="font-size:.85rem;text-align:center">Pagina ${page + 1} di ${pages}<br>${total} giocatori</span>
+    <button class="btn small" data-${attr}="${page + 1}" ${page >= pages - 1 ? "disabled" : ""} aria-label="Pagina successiva">Succ. ›</button></div>`;
+}
+const pageOf = (list, page) => list.slice(page * PER_PAGE, page * PER_PAGE + PER_PAGE);
 function nominateBox(previewOnly = false) {
   const taken = new Set(S.roster.map((r) => r.player_id));
   const qs = S.search.toLowerCase();
@@ -569,21 +589,25 @@ function nominateBox(previewOnly = false) {
   if (S.onlyFree) list = list.filter((p) => !taken.has(p.id));
   if (S.court) list = list.filter((p) => p.court === S.court);
   if (qs) list = list.filter((p) => p.name.toLowerCase().includes(qs) || (p.team_abbr || "").toLowerCase() === qs);
-  list.sort((a, b) => estFp(b.id) - estFp(a.id));
+  list = inBand(list, S.band);
+  list.sort((a, b) => val(b.id) - val(a.id) || estFp(b.id) - estFp(a.id));
+  const pages = Math.max(1, Math.ceil(list.length / PER_PAGE)); if (S.page >= pages) S.page = pages - 1;
   const base = +(R().auction || {}).base_price || 1;
   return `<section class="card stack">
     <div class="row"><input id="pl-search" class="grow" style="width:auto" placeholder="Cerca giocatore o squadra (es. LAL)" value="${esc(S.search)}">
     <div class="seg"><button class="${!S.court ? "on" : ""}" data-court="">Tutti</button><button class="${S.court === "BC" ? "on" : ""}" data-court="BC">BC</button><button class="${S.court === "FC" ? "on" : ""}" data-court="FC">FC</button></div></div>
     <label class="row" style="gap:8px"><input type="checkbox" id="only-free" ${S.onlyFree ? "checked" : ""}> <span>Solo liberi</span></label>
-    <div class="list" id="pl-list">${list.slice(0, 30).map((p) => {
+    ${bandBar(S.band, "band")}
+    ${pager(list.length, S.page, "page")}
+    <div class="list" id="pl-list">${pageOf(list, S.page).map((p) => {
       const l = S.last.get(p.id), owner = S.roster.find((r) => r.player_id === p.id);
       return `<div class="item">${avatar(p)}<div class="grow" style="min-width:0"><div class="ellipsis" style="font-weight:700">${esc(p.name)}</div>
         <div class="row" style="gap:6px">${courtChip(p)}<span class="muted" style="font-size:.85rem">${esc(p.team_abbr)}</span>${injChip(p)}</div>
         <div class="muted num" style="font-size:.8rem">${l ? `25-26: ${r1(l.pts)} pt · ${r1(l.reb)} rb · ${r1(l.ast)} as · ${l.gp} gare` : "nessuna statistica 25-26"}</div></div>
-        <div style="text-align:right"><div class="num" style="font-family:var(--display);font-weight:900;font-size:1.35rem">${r1(estFp(p.id))}</div>
+        <div style="text-align:right"><div class="label">Quot.</div><div class="num" style="font-family:var(--display);font-weight:900;font-size:1.35rem;line-height:1">${val(p.id)}</div><div class="muted num" style="font-size:.78rem">${r1(estFp(p.id))} pt/gara</div>
         ${owner ? `<span class="chip">${esc(teamName(owner.team_id))} · ${owner.price}</span>` : previewOnly ? "" : `<button class="btn small primary" data-nom="${p.id}">Chiama a ${base}</button>`}</div></div>`;
     }).join("") || '<div class="empty">Nessun giocatore trovato</div>'}</div>
-    ${list.length > 30 ? `<div class="muted">Mostro i primi 30 per media punti. Usa la ricerca per gli altri.</div>` : ""}
+    ${pager(list.length, S.page, "page")}
   </section>`;
 }
 function myRosterBox() {
@@ -733,11 +757,15 @@ async function mercatoView() {
     let list = [...S.players.values()].filter((p) => p.active && p.team_abbr && !taken.has(p.id));
     if (M.faCourt) list = list.filter((p) => p.court === M.faCourt);
     if (qs) list = list.filter((p) => p.name.toLowerCase().includes(qs) || (p.team_abbr || "").toLowerCase() === qs);
+    list = inBand(list, M.faBand);
     list.sort((a, b) => val(b.id) - val(a.id) || estFp(b.id) - estFp(a.id));
+    const pages = Math.max(1, Math.ceil(list.length / PER_PAGE)); if (M.faPage >= pages) M.faPage = pages - 1;
     faBox = `<section class="card stack"><div class="label">Free agent · offerta minima = quotazione</div>
       <div class="row"><input id="fa-search" class="grow" style="width:auto" placeholder="Cerca giocatore o squadra" value="${esc(M.faSearch)}">
       <div class="seg"><button class="${!M.faCourt ? "on" : ""}" data-fac="">Tutti</button><button class="${M.faCourt === "BC" ? "on" : ""}" data-fac="BC">BC</button><button class="${M.faCourt === "FC" ? "on" : ""}" data-fac="FC">FC</button></div></div>
-      <div class="list">${list.slice(0, 25).map((p) => {
+      ${bandBar(M.faBand, "faband")}
+      ${pager(list.length, M.faPage, "fapage")}
+      <div class="list" id="fa-list">${pageOf(list, M.faPage).map((p) => {
         const v = val(p.id), isOpen = M.fa === p.id;
         return `<div class="item" style="flex-wrap:wrap">${avatar(p)}<div class="grow" style="min-width:0"><div class="ellipsis" style="font-weight:700">${esc(p.name)}</div>
           <div class="row" style="gap:6px">${courtChip(p)}<span class="muted" style="font-size:.85rem">${esc(p.team_abbr)} · media ${r1(estFp(p.id))} pt</span>${injChip(p)}</div></div>
@@ -747,7 +775,8 @@ async function mercatoView() {
             <label class="field"><span class="muted" style="font-size:.85rem">Se vinci rilasci ${full ? "(obbligatorio)" : "(facoltativo)"}</span><select id="fa-drop"><option value="">${full ? "Scegli…" : "Nessuno"}</option>${mine.map((m) => `<option value="${m.id}" ${M.faDrop === m.id ? "selected" : ""}>${esc(m.name)} (+${refundOf(m.id)})</option>`).join("")}</select></label></div>
             <div class="row"><button class="btn primary" data-act="fa-send" data-pid="${p.id}">Metti in busta</button><button class="btn" data-act="fa-close">Annulla</button></div>
             <span class="muted" style="font-size:.85rem">Nessuno vede la tua offerta. Puoi cambiarla fino alla chiusura.</span></div>` : `<button class="btn small primary" data-act="fa-open" data-pid="${p.id}">Offerta</button>`}</div>`;
-      }).join("") || '<div class="empty">Nessun free agent trovato</div>'}</div></section>`;
+      }).join("") || '<div class="empty">Nessun free agent trovato</div>'}</div>
+      ${pager(list.length, M.faPage, "fapage")}</section>`;
   }
 
   const txBox = `<section class="card"><div class="label">Movimenti della lega</div><div class="list">${tx.map((x) => `<div class="item" style="display:block"><div>${txText(x)}</div><div class="muted" style="font-size:.8rem">${fmtDT(x.created_at)}</div></div>`).join("") || '<div class="empty">Ancora nessun movimento</div>'}</div></section>`;
@@ -824,13 +853,17 @@ function bindCommon() {
         return render();
       }
       if (d.cap) { S.lineup.captain = S.lineup.captain === d.cap ? null : d.cap; return render(); }
-      if (d.court !== undefined) { S.court = d.court; return render(); }
+      if (d.court !== undefined) { S.court = d.court; S.page = 0; return render(); }
       if (d.nom) { await rpc("auction_nominate", { p_token: tok, p_player: d.nom, p_start: +(R().auction || {}).base_price || 1 }); return; }
       if (d.bid) { await rpc("auction_bid", { p_token: tok, p_amount: +d.bid }); return; }
       if (d.admAuction) { await rpc("admin_auction", { p_token: tok, p_action: d.admAuction, p_team: null }); return; }
       if (d.adj) { await rpc("admin_team", { p_token: tok, p_team: d.adj, p_action: "credit_adjust", p_value: { value: +$("#adj-" + d.adj).value || 0 } }); toast("Crediti aggiornati"); return; }
       if (d.tg) { const M = S.mk, arr = M[d.tg]; const i = arr.indexOf(d.id); i >= 0 ? arr.splice(i, 1) : arr.push(d.id); return render(); }
-      if (d.fac !== undefined) { S.mk.faCourt = d.fac; return render(); }
+      if (d.fac !== undefined) { S.mk.faCourt = d.fac; S.mk.faPage = 0; return render(); }
+      if (d.band !== undefined) { S.band = d.band; S.page = 0; return render(); }
+      if (d.faband !== undefined) { S.mk.faBand = d.faband; S.mk.faPage = 0; return render(); }
+      if (d.page !== undefined) { S.page = +d.page; await render(); return $("#pl-list")?.scrollIntoView({ block: "start" }); }
+      if (d.fapage !== undefined) { S.mk.faPage = +d.fapage; await render(); return $("#fa-list")?.scrollIntoView({ block: "start" }); }
       switch (d.act) {
         case "new-trade": S.mk.newTrade = !S.mk.newTrade; return render();
         case "send-trade": {
@@ -904,18 +937,18 @@ function bindCommon() {
     } catch (err) { toast(err.message, true); }
   };
   const ps = $("#pl-search");
-  if (ps) ps.oninput = () => { S.search = ps.value; const pos = ps.selectionStart; render().then(() => { const n = $("#pl-search"); if (n) { n.focus(); n.setSelectionRange(pos, pos); } }); };
+  if (ps) ps.oninput = () => { S.search = ps.value; S.page = 0; const pos = ps.selectionStart; render().then(() => { const n = $("#pl-search"); if (n) { n.focus(); n.setSelectionRange(pos, pos); } }); };
   app.oninput = (e) => {
     const id = e.target.id, M = S.mk;
     if (id === "tr-givec" || id === "tr-getc") { M[id === "tr-givec" ? "givec" : "getc"] = e.target.value; const el = $("#tr-sum"); if (el) el.textContent = `Quotazioni: dai ${M.give.reduce((a, x) => a + val(x), 0)} + ${+M.givec || 0} cr · ricevi ${M.get.reduce((a, x) => a + val(x), 0)} + ${+M.getc || 0} cr`; } else if (id === "tr-msg") M.msg = e.target.value;
     else if (id === "fa-amt") M.faAmt = e.target.value;
-    else if (id === "fa-search") { M.faSearch = e.target.value; const pos = e.target.selectionStart; render().then(() => { const n = $("#fa-search"); if (n) { n.focus(); n.setSelectionRange(pos, pos); } }); }
+    else if (id === "fa-search") { M.faSearch = e.target.value; M.faPage = 0; const pos = e.target.selectionStart; render().then(() => { const n = $("#fa-search"); if (n) { n.focus(); n.setSelectionRange(pos, pos); } }); }
   };
   app.onchange = (e) => {
     if (e.target.id === "tr-team") { Object.assign(S.mk, { tradeTo: e.target.value, get: [] }); render(); }
     else if (e.target.id === "fa-drop") S.mk.faDrop = e.target.value;
   };
-  const of = $("#only-free"); if (of) of.onchange = () => { S.onlyFree = of.checked; render(); };
+  const of = $("#only-free"); if (of) of.onchange = () => { S.onlyFree = of.checked; S.page = 0; render(); };
   app.onkeydown = (e) => { if ((e.key === "Enter" || e.key === " ") && e.target.matches("[data-match],[data-team-open]")) { e.preventDefault(); e.target.click(); } };
 }
 
