@@ -1,0 +1,777 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Fanta NBA</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="theme-color" content="#0E1116">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Big+Shoulders+Display:wght@700;800;900&display=swap">
+<style>
+/* Layout: app a una colonna, barra a tab in basso, "tabellone" in alto per asta e sfide */
+:root{
+  --bg:#EDF0F3; --surface:#FFFFFF; --surface2:#E3E8EE; --line:#D3DAE2;
+  --ink:#121820; --muted:#5A6676; --accent:#E35A12; --accent-ink:#FFFFFF;
+  --mine:#1F5FD1; --win:#13804B; --loss:#C2342B; --warn:#B7791F;
+  --display:"Big Shoulders Display","Arial Narrow",Impact,sans-serif;
+  --body:"Barlow",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --board:#121820; --board-ink:#F1F4F8;
+  --r:10px;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0E1116; --surface:#171C24; --surface2:#1F2630; --line:#2A3340;
+  --ink:#E9EDF2; --muted:#8C97A6; --accent:#FF7A2E; --accent-ink:#1A0D05;
+  --mine:#6EA1FF; --win:#3DD68C; --loss:#FF6B61; --warn:#F2B84B; --board:#07090C; --board-ink:#F1F4F8; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0E1116; --surface:#171C24; --surface2:#1F2630; --line:#2A3340;
+  --ink:#E9EDF2; --muted:#8C97A6; --accent:#FF7A2E; --accent-ink:#1A0D05;
+  --mine:#6EA1FF; --win:#3DD68C; --loss:#FF6B61; --warn:#F2B84B; --board:#07090C; --board-ink:#F1F4F8; color-scheme:dark}
+
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:500 15px/1.45 var(--body);
+  padding-left:max(0px,env(safe-area-inset-left,0px));padding-right:max(0px,env(safe-area-inset-right,0px));
+  -webkit-tap-highlight-color:transparent}
+button,input,select{font:inherit;color:inherit}
+.wrap{max-width:720px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:12px 96px}
+h1,h2,h3{font-family:var(--display);font-weight:800;letter-spacing:.01em;margin:0;line-height:1.05;text-wrap:balance}
+h1{font-size:2.4rem} h2{font-size:1.6rem} h3{font-size:1.2rem}
+.label{font-size:.72rem;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);font-weight:600}
+.muted{color:var(--muted)}
+.num{font-variant-numeric:tabular-nums}
+.stack{display:flex;flex-direction:column;gap:12px}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.between{justify-content:space-between}
+.grow{flex:1;min-width:0}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px}
+.list{display:flex;flex-direction:column}
+.list>.item{display:flex;gap:10px;align-items:center;padding:10px 0;border-top:1px solid var(--line)}
+.list>.item:first-child{border-top:0}
+.ellipsis{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+.btn{border:1px solid var(--line);background:var(--surface2);border-radius:8px;padding:9px 14px;font-weight:600;cursor:pointer;min-height:40px}
+.btn:hover{border-color:var(--muted)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.small{padding:5px 10px;min-height:32px;font-size:.88rem}
+.btn.ghost{background:transparent}
+.btn.danger{color:var(--loss);border-color:var(--loss);background:transparent}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn:focus-visible,input:focus-visible,select:focus-visible,.tab:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+input,select{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:9px 11px;min-height:40px;width:100%}
+input[type=checkbox]{width:20px;height:20px;min-height:0;accent-color:var(--accent)}
+.field{display:flex;flex-direction:column;gap:4px;min-width:0}
+.grid2{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+
+.chip{display:inline-flex;align-items:center;gap:4px;font-size:.72rem;font-weight:700;letter-spacing:.04em;padding:2px 7px;border-radius:99px;border:1px solid var(--line);color:var(--muted);text-transform:uppercase;white-space:nowrap}
+.chip.bc{color:var(--mine);border-color:color-mix(in srgb,var(--mine) 45%,transparent)}
+.chip.fc{color:var(--accent);border-color:color-mix(in srgb,var(--accent) 45%,transparent)}
+.chip.inj{color:var(--loss);border-color:color-mix(in srgb,var(--loss) 50%,transparent)}
+.chip.dtd{color:var(--warn);border-color:color-mix(in srgb,var(--warn) 50%,transparent)}
+.chip.win{color:var(--win);border-color:color-mix(in srgb,var(--win) 50%,transparent)}
+.chip.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.avatar{width:40px;height:40px;border-radius:50%;background:var(--surface2);object-fit:cover;flex:none}
+.avatar.lg{width:84px;height:84px}
+
+/* testata */
+header.top{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;padding-block:6px 14px}
+.brand{font-family:var(--display);font-weight:900;font-size:1.9rem;line-height:.9;letter-spacing:.02em}
+.brand b{color:var(--accent)}
+
+/* tab bar */
+nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:20;background:var(--surface);border-top:1px solid var(--line);
+  display:flex;justify-content:center;padding-bottom:env(safe-area-inset-bottom,0px);
+  padding-left:env(safe-area-inset-left,0px);padding-right:env(safe-area-inset-right,0px)}
+nav.tabs .in{display:grid;grid-template-columns:repeat(5,1fr);width:100%;max-width:720px}
+.tab{background:none;border:0;padding:10px 2px 9px;font-family:var(--display);font-weight:800;font-size:1rem;letter-spacing:.04em;color:var(--muted);cursor:pointer;text-transform:uppercase;position:relative}
+.tab[aria-current="page"]{color:var(--ink)}
+.tab[aria-current="page"]::before{content:"";position:absolute;left:22%;right:22%;top:0;height:3px;background:var(--accent);border-radius:0 0 3px 3px}
+.tab .dot{position:absolute;top:8px;right:18%;width:8px;height:8px;border-radius:50%;background:var(--loss)}
+
+/* tabellone */
+.board{background:var(--board);color:var(--board-ink);border:1px solid var(--line);border-radius:var(--r);padding:16px;position:relative;overflow:hidden}
+.board .label{color:color-mix(in srgb,var(--board-ink) 62%,transparent)}
+.board .big{font-family:var(--display);font-weight:900;font-size:4.2rem;line-height:.85;font-variant-numeric:tabular-nums}
+.board .mid{font-family:var(--display);font-weight:800;font-size:1.7rem;line-height:1}
+.timerbar{height:6px;border-radius:3px;background:color-mix(in srgb,var(--board-ink) 18%,transparent);overflow:hidden;margin-top:12px}
+.timerbar i{display:block;height:100%;background:var(--accent);transition:width .25s linear}
+.board.hot .timerbar i{background:var(--loss)}
+.secs{font-family:var(--display);font-weight:900;font-size:2.2rem;font-variant-numeric:tabular-nums;line-height:1}
+
+/* sfide */
+.match{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:10px;padding:12px 0;border-top:1px solid var(--line);cursor:pointer}
+.match:first-child{border-top:0}
+.match .t{min-width:0}
+.match .t.r{text-align:right}
+.match .score{font-family:var(--display);font-weight:900;font-size:1.9rem;font-variant-numeric:tabular-nums;white-space:nowrap}
+.match .lead{color:var(--accent)}
+.mine-name{color:var(--mine)}
+table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+th,td{padding:8px 6px;text-align:right;border-top:1px solid var(--line);white-space:nowrap}
+th{font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);border-top:0;font-weight:600}
+th:first-child,td:first-child{text-align:left}
+td.team{white-space:normal}
+tr.cut td{border-top:2px dashed var(--accent)}
+.scroll{overflow-x:auto}
+
+/* formazione */
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;flex:none}
+.seg button{border:0;background:transparent;padding:6px 10px;min-height:34px;font-weight:700;font-size:.82rem;cursor:pointer;color:var(--muted)}
+.seg button+button{border-left:1px solid var(--line)}
+.seg button.on{background:var(--accent);color:var(--accent-ink)}
+.seg button.on.p{background:var(--surface2);color:var(--ink)}
+.star{border:0;background:none;font-size:1.25rem;line-height:1;cursor:pointer;color:var(--line);padding:4px;min-width:32px}
+.star.on{color:var(--accent)}
+.daypick{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px}
+.daypick button{flex:none}
+.sticky-save{position:sticky;bottom:calc(64px + env(safe-area-inset-bottom,0px));z-index:5}
+
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(80px + env(safe-area-inset-bottom,0px));z-index:50;background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:8px;font-weight:600;max-width:calc(100% - 32px);box-shadow:0 6px 24px rgba(0,0,0,.25)}
+.toast.err{background:var(--loss);color:#fff}
+.empty{padding:22px 8px;text-align:center;color:var(--muted)}
+details>summary{cursor:pointer;list-style:none}
+details>summary::-webkit-details-marker{display:none}
+.login-hero{padding-block:28px 18px}
+.login-hero h1{font-size:3.4rem;font-weight:900}
+.login-hero h1 b{color:var(--accent)}
+.feed{font-size:.88rem;max-height:160px;overflow:auto}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+@keyframes pop{0%{transform:scale(1.12)}100%{transform:scale(1)}}
+.pop{animation:pop .35s ease-out}
+</style>
+</head>
+<body>
+<div id="app" class="wrap"><div class="empty">Caricamento…</div></div>
+<nav class="tabs" id="tabs" hidden><div class="in">
+  <button class="tab" data-tab="oggi">Oggi</button>
+  <button class="tab" data-tab="formazione">Quintetto</button>
+  <button class="tab" data-tab="asta">Asta</button>
+  <button class="tab" data-tab="classifica">Classifica</button>
+  <button class="tab" data-tab="lega">Lega</button>
+</div></nav>
+<div id="toast" class="toast" hidden></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script>
+"use strict";
+const SB_URL = "https://hpihmnttcsihllbreadp.supabase.co";
+const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhwaWhtbnR0Y3NpaGxsYnJlYWRwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTIyNDY5MDIsImV4cCI6MjEwNzgyMjkwMn0.efJbH_jDPUz3jd73jCLXJn7WHR_7FJIBFk0TFPeuQ0M";
+const sb = supabase.createClient(SB_URL, SB_KEY, { auth: { persistSession: false } });
+
+/* ---------- utilità ---------- */
+const $ = (s, r = document) => r.querySelector(s);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const store = {
+  get(k) { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
+  del(k) { try { localStorage.removeItem(k); } catch {} },
+};
+function toast(msg, err = false) {
+  const t = $("#toast"); t.textContent = msg; t.className = "toast" + (err ? " err" : ""); t.hidden = false;
+  clearTimeout(toast._t); toast._t = setTimeout(() => (t.hidden = true), err ? 4200 : 2400);
+}
+async function rpc(name, args) {
+  const { data, error } = await sb.rpc(name, args);
+  if (error) throw new Error(error.message || "Errore");
+  return data;
+}
+async function q(promise) { const { data, error } = await promise; if (error) throw new Error(error.message); return data; }
+const etToday = () => new Intl.DateTimeFormat("en-CA", { timeZone: "America/New_York", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date(now()));
+const fmtDay = (d) => new Date(d + "T12:00:00Z").toLocaleDateString("it-IT", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" });
+const fmtTime = (ts) => new Date(ts).toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Rome" });
+const fmtDT = (ts) => new Date(ts).toLocaleString("it-IT", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "Europe/Rome" });
+const r1 = (n) => (Math.round((+n || 0) * 10) / 10).toLocaleString("it-IT");
+let clockOffset = 0;
+const now = () => Date.now() + clockOffset;
+
+/* ---------- stato ---------- */
+const S = {
+  sess: store.get("fantanba.sess"),
+  tab: store.get("fantanba.tab") || "oggi",
+  league: null, teams: [], roster: [], auction: null, bids: [], standings: [],
+  players: new Map(), last: new Map(), cur: new Map(),
+  day: null, lineupDate: null, lineup: null, openMatch: null,
+  search: "", court: "", onlyFree: true,
+};
+const me = () => S.teams.find((t) => t.id === S.sess?.team_id);
+const isAdmin = () => !!me()?.is_admin;
+const R = () => S.league?.rules || {};
+const teamName = (id) => S.teams.find((t) => t.id === id)?.name || "—";
+const P = (id) => S.players.get(id) || { id, name: "Giocatore " + id, court: "", team_abbr: "" };
+
+/* punti fantasy stimati da medie */
+function fpFrom(s, rules = R()) {
+  if (!s) return null;
+  const sc = rules.scoring || {}, b = rules.bonus || {};
+  let v = 0;
+  for (const k of ["pts", "reb", "ast", "stl", "blk", "tov", "fg3m", "fg_miss", "ft_miss", "pf"]) v += (+s[k] || 0) * (+sc[k] || 0);
+  if (s.gp) v += ((+s.dd || 0) / s.gp) * (+b.double_double || 0) + ((+s.td || 0) / s.gp) * (+b.triple_double || 0);
+  return v;
+}
+// media della stagione in corso solo dopo almeno 5 partite, prima vale la 2025-26
+const estFp = (id) => { const c = S.cur.get(id); return (c && c.gp >= 5 ? fpFrom(c) : null) ?? fpFrom(S.last.get(id)) ?? (c ? fpFrom(c) : 0) ?? 0; };
+
+function credits(teamId) {
+  const t = S.teams.find((x) => x.id === teamId); if (!t) return 0;
+  const spent = S.roster.filter((r) => r.team_id === teamId).reduce((a, r) => a + r.price, 0);
+  return (+R().credits || 0) + (t.credit_adjust || 0) - spent;
+}
+function rosterOf(teamId) { return S.roster.filter((r) => r.team_id === teamId); }
+function maxBid(teamId) {
+  const ro = R().roster || {}, base = +(R().auction || {}).base_price || 1;
+  const n = rosterOf(teamId).length, slots = +ro.size || 10;
+  if (n >= slots) return 0;
+  return credits(teamId) - (slots - n - 1) * base;
+}
+function canTake(teamId, pid) {
+  const p = P(pid), ro = R().roster || {}, mine = rosterOf(teamId).map((r) => P(r.player_id));
+  if (mine.length >= (+ro.size || 10)) return "Rosa completa";
+  const cap = +ro[(p.court || "").toLowerCase()] || 99;
+  if (mine.filter((x) => x.court === p.court).length >= cap) return "Reparto " + p.court + " pieno";
+  if (mine.filter((x) => x.team_abbr === p.team_abbr).length >= (+ro.max_per_nba_team || 99)) return "Già " + ro.max_per_nba_team + " di " + p.team_abbr;
+  return null;
+}
+function injChip(p) {
+  if (!p.injury_status) return "";
+  const s = p.injury_status.toLowerCase();
+  const cls = s.includes("day") || s.includes("question") || s.includes("probable") ? "dtd" : "inj";
+  const lbl = { out: "Out", "day-to-day": "In dubbio", questionable: "In dubbio", doubtful: "Difficile", probable: "Probabile", suspension: "Squalificato" }[s] || p.injury_status;
+  return `<span class="chip ${cls}" title="${esc(p.injury_note || "")}">${esc(lbl)}</span>`;
+}
+const courtChip = (p) => (p.court ? `<span class="chip ${p.court.toLowerCase()}">${p.court}</span>` : "");
+const avatar = (p, lg) => p.headshot ? `<img class="avatar${lg ? " lg" : ""}" src="${esc(p.headshot)}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">` : `<span class="avatar${lg ? " lg" : ""}"></span>`;
+
+/* ---------- caricamento dati ---------- */
+async function loadStatic() {
+  const [pl, last, cur] = await Promise.all([
+    q(sb.from("players").select("id,name,team_abbr,court,position,injury_status,injury_note,headshot,active").limit(2000)),
+    q(sb.from("player_last_season").select("*").limit(2000)),
+    q(sb.from("player_season").select("*").limit(2000)),
+  ]);
+  S.players = new Map(pl.map((p) => [p.id, p]));
+  S.last = new Map(last.map((x) => [x.player_id, x]));
+  S.cur = new Map(cur.filter((x) => x.gp > 0).map((x) => [x.player_id, x]));
+  try {
+    const t0 = Date.now(); const srv = await rpc("server_now"); const t1 = Date.now();
+    clockOffset = new Date(srv).getTime() - (t0 + t1) / 2;
+  } catch {}
+}
+async function loadLeague() {
+  const id = S.sess.league_id;
+  const [lg, teams, roster, auction, st] = await Promise.all([
+    q(sb.from("leagues").select("*").eq("id", id).maybeSingle()),
+    q(sb.from("teams").select("*").eq("league_id", id).order("sort_order")),
+    q(sb.from("roster").select("*").eq("league_id", id)),
+    q(sb.from("auction").select("*").eq("league_id", id).maybeSingle()),
+    q(sb.from("standings").select("*").eq("league_id", id)),
+  ]);
+  if (!lg) throw new Error("Lega non trovata");
+  S.league = lg; S.teams = teams; S.roster = roster; S.auction = auction; S.standings = st;
+}
+async function loadBids() {
+  const a = S.auction; if (!a?.player_id) { S.bids = []; return; }
+  S.bids = await q(sb.from("bids").select("*").eq("league_id", S.sess.league_id).eq("player_id", a.player_id).order("id", { ascending: false }).limit(15));
+}
+
+let channel = null, reloadT = null;
+function subscribe() {
+  if (channel) sb.removeChannel(channel);
+  const id = S.sess.league_id, f = `league_id=eq.${id}`;
+  const soon = (fn) => { clearTimeout(reloadT); reloadT = setTimeout(fn, 150); };
+  channel = sb.channel("lg-" + id)
+    .on("postgres_changes", { event: "*", schema: "public", table: "auction", filter: f }, async (p) => {
+      const prev = S.auction; S.auction = p.new;
+      if (p.new?.last_result && JSON.stringify(p.new.last_result) !== JSON.stringify(prev?.last_result)) {
+        const r = p.new.last_result; toast(`${P(r.player_id).name} a ${teamName(r.team_id)} per ${r.price}`);
+      }
+      await loadBids(); if (S.tab === "asta") render(); else renderTabs();
+    })
+    .on("postgres_changes", { event: "*", schema: "public", table: "bids", filter: f }, () => soon(async () => { await loadBids(); if (S.tab === "asta") render(); }))
+    .on("postgres_changes", { event: "*", schema: "public", table: "roster", filter: f }, () => soon(async () => { S.roster = await q(sb.from("roster").select("*").eq("league_id", id)); render(); }))
+    .on("postgres_changes", { event: "*", schema: "public", table: "teams", filter: f }, () => soon(async () => { await loadLeague(); render(); }))
+    .on("postgres_changes", { event: "UPDATE", schema: "public", table: "leagues", filter: `id=eq.${id}` }, () => soon(async () => { await loadLeague(); render(); }))
+    .on("postgres_changes", { event: "*", schema: "public", table: "team_scores", filter: f }, () => soon(async () => { S.standings = await q(sb.from("standings").select("*").eq("league_id", id)); if (S.tab === "oggi" || S.tab === "classifica") render(); }))
+    .subscribe();
+}
+
+/* ---------- navigazione ---------- */
+function renderTabs() {
+  const nav = $("#tabs"); nav.hidden = !S.league;
+  nav.querySelectorAll(".tab").forEach((b) => {
+    b.toggleAttribute("aria-current", b.dataset.tab === S.tab);
+    if (b.dataset.tab === S.tab) b.setAttribute("aria-current", "page");
+    b.querySelector(".dot")?.remove();
+    if (b.dataset.tab === "asta" && S.auction?.status === "open" && S.tab !== "asta") b.insertAdjacentHTML("beforeend", '<span class="dot"></span>');
+  });
+}
+$("#tabs").addEventListener("click", (e) => {
+  const b = e.target.closest(".tab"); if (!b) return;
+  S.tab = b.dataset.tab; store.set("fantanba.tab", S.tab); render(); window.scrollTo(0, 0);
+});
+
+function head(title, sub) {
+  return `<header class="top"><div><div class="brand">FANTA<b>NBA</b></div>${sub ? `<div class="muted" style="margin-top:4px">${sub}</div>` : ""}</div>
+  <div style="text-align:right;max-width:45%;min-width:0"><div class="label ellipsis">${esc(S.league?.name || "")}</div><div class="mine-name" style="font-weight:700">${esc(me()?.name || "")}</div></div></header>
+  <h1 style="margin-bottom:12px">${title}</h1>`;
+}
+
+async function render() {
+  renderTabs();
+  const app = $("#app");
+  if (!S.sess || !S.league) { app.innerHTML = loginView(); bindLogin(); return; }
+  try {
+    if (S.tab === "oggi") app.innerHTML = await oggiView();
+    else if (S.tab === "formazione") app.innerHTML = await formazioneView();
+    else if (S.tab === "asta") app.innerHTML = astaView();
+    else if (S.tab === "classifica") app.innerHTML = await classificaView();
+    else app.innerHTML = legaView();
+  } catch (e) { app.innerHTML = head("Ops") + `<section class="card">${esc(e.message)}</section>`; }
+  bindCommon(); tick();
+}
+
+/* ---------- LOGIN ---------- */
+let loginMode = "accedi";
+function loginView() {
+  const f = (id, label, type = "text", extra = "") => `<label class="field"><span class="label">${label}</span><input id="${id}" type="${type}" ${extra}></label>`;
+  const forms = {
+    accedi: `${f("lg-code", "Codice lega", "text", 'autocapitalize="characters" maxlength="6" placeholder="Es. 7F3K9A"')}
+             ${f("lg-team", "Nome squadra")}${f("lg-pin", "PIN", "password", 'inputmode="numeric" maxlength="8"')}
+             <button class="btn primary" data-act="login">Entra</button>`,
+    entra: `${f("lg-code", "Codice lega (te lo dà chi l'ha creata)", "text", 'autocapitalize="characters" maxlength="6"')}
+             ${f("lg-team", "Nome della tua squadra")}${f("lg-owner", "Il tuo nome")}
+             ${f("lg-pin", "Scegli un PIN (min 4 cifre)", "password", 'inputmode="numeric" maxlength="8"')}
+             <button class="btn primary" data-act="join">Unisciti alla lega</button>`,
+    crea: `${f("lg-name", "Nome della lega", "text", 'placeholder="Es. Lega del Martedì"')}
+             <label class="field"><span class="label">Formato</span><select id="lg-mode">
+               <option value="h2h">Sfide quotidiane + playoff (stile NBA)</option>
+               <option value="total">Classifica a punti totali</option></select></label>
+             ${f("lg-team", "Nome della tua squadra")}${f("lg-owner", "Il tuo nome")}
+             ${f("lg-pin", "Scegli un PIN (min 4 cifre)", "password", 'inputmode="numeric" maxlength="8"')}
+             <button class="btn primary" data-act="create">Crea lega</button>`,
+  };
+  return `<div class="login-hero"><div class="label">Lega privata tra amici</div><h1>FANTA<b>NBA</b></h1>
+    <p class="muted" style="max-width:46ch">Asta dal telefono, quintetto ogni sera, punti calcolati dalle statistiche NBA ufficiali.</p></div>
+    <section class="card stack">
+      <div class="row">${["accedi:Accedi", "entra:Ho un codice", "crea:Crea lega"].map((x) => { const [k, l] = x.split(":"); return `<button class="btn small ${loginMode === k ? "primary" : "ghost"}" data-mode="${k}">${l}</button>`; }).join("")}</div>
+      <div class="stack" id="login-form">${forms[loginMode]}</div>
+    </section>`;
+}
+function bindLogin() {
+  $("#app").querySelectorAll("[data-mode]").forEach((b) => b.onclick = () => { loginMode = b.dataset.mode; render(); });
+  const v = (id) => ($("#" + id)?.value || "").trim();
+  const go = async (fn) => {
+    try {
+      const res = await fn();
+      S.sess = res; store.set("fantanba.sess", res);
+      await loadLeague(); subscribe(); S.tab = S.league.status === "auction" ? "asta" : "oggi"; render();
+      if (res.created) toast("Lega creata. Codice: " + res.code);
+    } catch (e) { toast(e.message, true); }
+  };
+  const a = $("#app");
+  a.querySelector('[data-act="login"]')?.addEventListener("click", () => go(() => rpc("login", { p_code: v("lg-code"), p_team_name: v("lg-team"), p_pin: v("lg-pin") })));
+  a.querySelector('[data-act="join"]')?.addEventListener("click", () => go(() => rpc("join_league", { p_code: v("lg-code"), p_team_name: v("lg-team"), p_owner: v("lg-owner"), p_pin: v("lg-pin") })));
+  a.querySelector('[data-act="create"]')?.addEventListener("click", () => go(async () => ({ ...(await rpc("create_league", { p_name: v("lg-name"), p_mode: $("#lg-mode").value, p_team_name: v("lg-team"), p_owner: v("lg-owner"), p_pin: v("lg-pin") })), created: true })));
+}
+
+/* ---------- OGGI ---------- */
+async function gameDays() {
+  if (!gameDays.cache) {
+    const rows = await q(sb.from("game_days").select("game_date").gte("game_date", "2026-10-01").order("game_date").limit(1000));
+    gameDays.cache = rows.map((r) => r.game_date);
+  }
+  return gameDays.cache;
+}
+function nearestDay(days, from) { return days.find((d) => d >= from) || days[days.length - 1] || from; }
+
+async function oggiView() {
+  const days = await gameDays();
+  const today = etToday();
+  if (!S.day) {
+    const { data: live } = await sb.from("games").select("game_date").eq("game_date", today).limit(1);
+    S.day = live?.length ? today : nearestDay(days, today);
+  }
+  const d = S.day, lid = S.sess.league_id;
+  const [games, scores, matchups] = await Promise.all([
+    q(sb.from("games").select("*").eq("game_date", d).order("start_time")),
+    q(sb.from("team_scores").select("*").eq("league_id", lid).eq("game_date", d)),
+    q(sb.from("matchups").select("*").eq("league_id", lid).eq("game_date", d).in("phase", ["regular", "playoff"]).order("slot")),
+  ]);
+  const sc = new Map(scores.map((s) => [s.team_id, s]));
+  const pts = (id) => +(sc.get(id)?.points || 0);
+  const idx = days.indexOf(d);
+  const prev = days[idx - 1], next = days[idx + 1];
+  const state = games.every((g) => g.state === "post") && games.length ? "Finita" : games.some((g) => g.state === "in") ? "In corso" : "Da giocare";
+  const deadline = games.length ? games[0].start_time : null;
+
+  let main = "";
+  if (S.league.status !== "season" && S.league.status !== "finished") {
+    main = `<section class="card"><h3>La stagione non è ancora partita</h3><p class="muted">Prima si fa l'asta. Poi l'admin mette la lega su "Stagione" e genera il calendario dalle impostazioni in Lega.</p></section>`;
+  } else if (S.league.mode === "h2h" && matchups.length) {
+    main = `<section class="card"><div class="label">Sfide della giornata</div><div class="list">${matchups.map((m) => {
+      const a = m.home_team, b = m.away_team;
+      if (!b) return `<div class="match"><div class="t">${esc(teamName(a))}</div><div class="muted">riposa</div><div></div></div>`;
+      const pa = pts(a), pb = pts(b), mineM = a === S.sess.team_id || b === S.sess.team_id;
+      const open = S.openMatch === m.id;
+      return `<div class="match" data-match="${m.id}" role="button" tabindex="0" aria-expanded="${open}">
+        <div class="t"><div class="ellipsis ${a === S.sess.team_id ? "mine-name" : ""}" style="font-weight:700">${esc(teamName(a))}</div>${m.phase === "playoff" ? '<span class="chip on">Playoff</span>' : ""}</div>
+        <div class="score"><span class="${pa > pb ? "lead" : ""}">${r1(pa)}</span> <span class="muted" style="font-size:1rem">–</span> <span class="${pb > pa ? "lead" : ""}">${r1(pb)}</span></div>
+        <div class="t r"><div class="ellipsis ${b === S.sess.team_id ? "mine-name" : ""}" style="font-weight:700">${esc(teamName(b))}</div>${mineM ? '<span class="chip">tu</span>' : ""}</div>
+      </div>${open ? `<div class="grid2" style="padding-bottom:12px">${detailBox(sc.get(a), a)}${detailBox(sc.get(b), b)}</div>` : ""}`;
+    }).join("")}</div></section>`;
+  } else {
+    const rows = S.teams.map((t) => ({ t, p: pts(t.id) })).sort((x, y) => y.p - x.p);
+    main = `<section class="card"><div class="label">Punti della giornata</div><div class="list">${rows.map((r, i) =>
+      `<div class="item" data-team-open="${r.t.id}" role="button" tabindex="0"><span class="num muted" style="width:20px">${i + 1}</span><span class="grow ellipsis ${r.t.id === S.sess.team_id ? "mine-name" : ""}" style="font-weight:700">${esc(r.t.name)}</span><span class="num" style="font-family:var(--display);font-weight:900;font-size:1.5rem">${r1(r.p)}</span></div>
+      ${S.openMatch === r.t.id ? detailBox(sc.get(r.t.id), r.t.id) : ""}`).join("")}</div>
+      ${S.league.mode === "h2h" ? '<p class="muted">Nessuna sfida in calendario per questa giornata. L\'admin può generare il calendario in Lega.</p>' : ""}</section>`;
+  }
+
+  return head(fmtDay(d), state + (deadline && state === "Da giocare" ? ` · quintetti chiusi alle ${fmtTime(deadline)}` : "")) + `
+  <div class="stack">
+    <div class="row between">
+      <button class="btn small" data-day="${prev || ""}" ${prev ? "" : "disabled"}>‹ ${prev ? fmtDay(prev) : ""}</button>
+      <button class="btn small ghost" data-day="${nearestDay(days, today)}">Oggi</button>
+      <button class="btn small" data-day="${next || ""}" ${next ? "" : "disabled"}>${next ? fmtDay(next) : ""} ›</button>
+    </div>
+    ${main}
+    <section class="card"><div class="label">Partite NBA · orari italiani</div>
+      ${games.length ? `<div class="list">${games.map((g) => `<div class="item"><span class="grow num"><b>${esc(g.away_abbr)}</b> ${g.state === "pre" ? "" : g.away_score} <span class="muted">@</span> <b>${esc(g.home_abbr)}</b> ${g.state === "pre" ? "" : g.home_score}</span><span class="muted">${g.state === "pre" ? fmtTime(g.start_time) : esc(g.status_detail || "")}</span></div>`).join("")}</div>` : '<div class="empty">Nessuna partita</div>'}
+    </section>
+  </div>`;
+}
+function detailBox(s, teamId) {
+  const det = s?.detail || [];
+  if (!det.length) return `<div class="card" style="background:var(--surface2);border-radius:8px;padding:10px"><div style="font-weight:700">${esc(teamName(teamId))}</div><div class="muted">Nessun punteggio ancora</div></div>`;
+  return `<div style="background:var(--surface2);border-radius:8px;padding:10px;min-width:0"><div style="font-weight:700;margin-bottom:4px">${esc(teamName(teamId))}</div>${det.map((x) => {
+    const p = P(x.id);
+    return `<div class="row between" style="gap:6px;padding:3px 0"><span class="grow ellipsis">${x.captain ? "★ " : ""}${esc(p.name)}${x.role === "sub" ? ' <span class="chip">entra</span>' : ""}${x.role === "dnp" ? ' <span class="chip inj">non gioca</span>' : ""}</span><span class="num" style="font-weight:700">${r1(x.pts)}</span></div>`;
+  }).join("")}</div>`;
+}
+
+/* ---------- QUINTETTO ---------- */
+async function formazioneView() {
+  const ro = R().roster || {};
+  const mine = rosterOf(S.sess.team_id).map((r) => ({ ...P(r.player_id), price: r.price }));
+  if (!mine.length) return head("Quintetto") + `<section class="card"><div class="empty">La tua rosa è vuota. I giocatori arrivano dall'asta.</div></section>`;
+  const days = await gameDays(), today = etToday();
+  const upcoming = days.filter((d) => d >= today).slice(0, 10);
+  if (!S.lineupDate || !upcoming.includes(S.lineupDate)) { S.lineupDate = upcoming[0]; S.lineup = null; }
+  const d = S.lineupDate;
+  const games = d ? await q(sb.from("games").select("*").eq("game_date", d)) : [];
+  const opp = new Map();
+  for (const g of games) { opp.set(g.home_abbr, { s: "vs " + g.away_abbr, t: g.start_time }); opp.set(g.away_abbr, { s: "@ " + g.home_abbr, t: g.start_time }); }
+  const deadline = games.length ? games.map((g) => g.start_time).sort()[0] : null;
+  const locked = deadline && now() >= new Date(deadline).getTime();
+
+  if (!S.lineup || S.lineup.date !== d) {
+    const rows = await q(sb.from("lineups").select("*").eq("team_id", S.sess.team_id).lte("game_date", d).order("game_date", { ascending: false }).limit(1));
+    const l = rows[0];
+    const own = new Set(mine.map((p) => p.id));
+    S.lineup = { date: d, starters: (l?.starters || []).filter((x) => own.has(x)), bench: (l?.bench || []).filter((x) => own.has(x)), captain: l && l.game_date === d ? l.captain : null, savedFor: l?.game_date || null };
+  }
+  const L = S.lineup, N = +ro.starters || 5;
+  const st = L.starters.map(P), nbc = st.filter((p) => p.court === "BC").length, nfc = st.filter((p) => p.court === "FC").length;
+  const okCount = L.starters.length === N, okMix = nbc >= (+ro.min_bc_start || 0) && nfc >= (+ro.min_fc_start || 0);
+  const row = (p) => {
+    const o = opp.get(p.team_abbr), isS = L.starters.includes(p.id), bi = L.bench.indexOf(p.id);
+    return `<div class="item">${avatar(p)}<div class="grow" style="min-width:0">
+      <div class="ellipsis" style="font-weight:700">${esc(p.name)}</div>
+      <div class="row" style="gap:6px">${courtChip(p)}<span class="muted" style="font-size:.85rem">${esc(p.team_abbr || "—")} · ${o ? esc(o.s) + " " + fmtTime(o.t) : '<span style="color:var(--loss)">non gioca</span>'}</span>${injChip(p)}</div>
+      <div class="muted num" style="font-size:.8rem">media ${r1(estFp(p.id))} pt</div></div>
+      ${isS && R().captain?.enabled ? `<button class="star ${L.captain === p.id ? "on" : ""}" data-cap="${p.id}" aria-label="Capitano" title="Capitano">★</button>` : ""}
+      <div class="seg"><button class="${isS ? "on" : ""}" data-lu="s" data-id="${p.id}">Tit</button><button class="${bi >= 0 ? "on p" : ""}" data-lu="b" data-id="${p.id}">${bi >= 0 ? "Pan " + (bi + 1) : "Pan"}</button></div></div>`;
+  };
+  const group = (c, label) => `<section class="card"><div class="label">${label}</div><div class="list">${mine.filter((p) => p.court === c).sort((a, b) => estFp(b.id) - estFp(a.id)).map(row).join("") || '<div class="empty">—</div>'}</div></section>`;
+  return head("Quintetto", d ? `${fmtDay(d)}${deadline ? (locked ? " · chiuso" : " · chiude alle " + fmtTime(deadline)) : ""}` : "Nessuna partita in programma") + `
+  <div class="stack">
+    <div class="daypick">${upcoming.map((x) => `<button class="btn small ${x === d ? "primary" : ""}" data-lday="${x}">${fmtDay(x)}</button>`).join("")}</div>
+    <section class="card row between">
+      <div><div class="label">Titolari</div><div class="num" style="font-family:var(--display);font-weight:900;font-size:1.8rem;color:${okCount && okMix ? "var(--win)" : "var(--ink)"}">${L.starters.length}/${N}</div></div>
+      <div class="num muted">${nbc} BC (min ${ro.min_bc_start}) · ${nfc} FC (min ${ro.min_fc_start})${R().captain?.enabled ? `<br>Capitano: ${L.captain ? esc(P(L.captain).name) : "nessuno"} (×${R().captain.multiplier})` : ""}</div>
+    </section>
+    ${L.savedFor && L.savedFor !== d ? `<p class="muted" style="margin:0">Ti mostro il quintetto salvato per ${fmtDay(L.savedFor)}: se non cambi nulla resta valido anche oggi. Il capitano va scelto ogni volta.</p>` : ""}
+    ${group("BC", "Back court · guardie")}${group("FC", "Front court · ali e centri")}
+    <p class="muted" style="margin:0">Se un titolare non gioca, entra il primo panchinaro dello stesso reparto (Pan 1, poi Pan 2…).</p>
+    <div class="sticky-save"><button class="btn primary" style="width:100%" data-act="save-lineup" ${locked || !d ? "disabled" : ""}>${locked ? "Giornata già iniziata" : "Salva quintetto"}</button></div>
+    ${S.league.status === "season" ? releaseBox(mine) : ""}
+  </div>`;
+}
+function releaseBox(mine) {
+  const pct = +(R().market || {}).release_refund_pct || 0;
+  return `<details class="card" style="background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px"><summary><span class="label">Svincola un giocatore</span></summary>
+    <p class="muted">Ti restituisce il ${pct}% di quanto l'hai pagato. Poi puoi riprenderne un altro all'asta.</p>
+    <div class="row"><select id="rel-p" class="grow">${mine.map((p) => `<option value="${p.id}">${esc(p.name)} (pagato ${p.price})</option>`).join("")}</select>
+    <button class="btn danger" data-act="release">Svincola</button></div><div id="rel-confirm"></div></details>`;
+}
+
+/* ---------- ASTA ---------- */
+function astaView() {
+  const a = S.auction || {}, lg = S.league, ro = R().roster || {}, au = R().auction || {};
+  const open = lg.status === "auction" || lg.status === "season";
+  const myMax = maxBid(S.sess.team_id);
+  let board = "";
+  if (!open) {
+    board = `<section class="board"><div class="label">Asta</div><div class="mid" style="margin-top:6px">Non ancora aperta</div><p style="opacity:.75;margin-bottom:0">${isAdmin() ? "Aprila dalla scheda Lega quando siete tutti collegati." : "La apre l'admin quando siete tutti pronti."}</p></section>`;
+  } else if (a.status === "open") {
+    const p = P(a.player_id), leading = a.current_team_id === S.sess.team_id;
+    const why = canTake(S.sess.team_id, a.player_id);
+    const minNext = (a.current_bid || 0) + (+au.min_increment || 1);
+    board = `<section class="board" id="board">
+      <div class="row" style="gap:14px;align-items:center">${avatar(p, true)}<div class="grow" style="min-width:0">
+        <div class="label">All'asta · ${esc(p.team_abbr)} ${esc(p.position || "")}</div>
+        <div class="mid ellipsis">${esc(p.name)}</div>
+        <div class="row" style="gap:6px;margin-top:4px">${courtChip(p)}${injChip(p)}<span style="opacity:.75;font-size:.85rem">media ${r1(estFp(p.id))} pt</span></div></div></div>
+      <div class="row between" style="margin-top:14px;align-items:flex-end">
+        <div><div class="label">Offerta</div><div class="big" id="bid-big">${a.current_bid}</div><div style="font-weight:700;${leading ? "color:var(--accent)" : ""}">${leading ? "Sei in testa" : esc(teamName(a.current_team_id))}</div></div>
+        <div style="text-align:right"><div class="label">Tempo</div><div class="secs" id="secs">–</div></div>
+      </div>
+      <div class="timerbar"><i id="tbar" style="width:100%"></i></div>
+    </section>
+    <section class="card stack">
+      ${why ? `<div class="muted">Non puoi offrire: ${esc(why)}.</div>` : leading ? `<div class="muted">Sei il miglior offerente. Aspetta o lascia correre il tempo.</div>` : `
+      <div class="row">${[1, 5, 10, 25].map((n) => { const v = a.current_bid + n; return `<button class="btn ${n === 1 ? "primary" : ""}" data-bid="${v}" ${v > myMax || n < (+au.min_increment || 1) ? "disabled" : ""}>+${n} · ${v}</button>`; }).join("")}</div>
+      <div class="row"><input id="bid-custom" type="number" inputmode="numeric" min="${minNext}" max="${myMax}" placeholder="Offerta libera (max ${myMax})" class="grow" style="width:auto"><button class="btn" data-act="bid-custom">Offri</button></div>`}
+      <div class="muted num" style="font-size:.85rem">Crediti: ${credits(S.sess.team_id)} · offerta massima possibile: ${myMax}</div>
+      ${S.bids.length ? `<div class="feed">${S.bids.map((b) => `<div class="row between"><span>${esc(teamName(b.team_id))}</span><b class="num">${b.amount}</b></div>`).join("")}</div>` : ""}
+      ${isAdmin() ? `<div class="row"><button class="btn small" data-adm-auction="end_now">Aggiudica ora</button><button class="btn small danger" data-adm-auction="cancel">Annulla questo giocatore</button></div>` : ""}
+    </section>`;
+  } else {
+    const turn = a.next_team_id, myTurn = !au.turn_order || !turn || turn === S.sess.team_id || isAdmin();
+    const lr = a.last_result;
+    board = `<section class="board"><div class="label">Asta aperta</div>
+      <div class="mid" style="margin-top:6px">${au.turn_order && turn ? (turn === S.sess.team_id ? "Tocca a te chiamare" : "Chiama " + esc(teamName(turn))) : "Chiunque può chiamare"}</div>
+      ${lr ? `<p style="opacity:.8;margin-bottom:0">Ultimo: ${esc(P(lr.player_id).name)} → ${esc(teamName(lr.team_id))} per ${lr.price}</p>` : ""}</section>
+      ${myTurn ? nominateBox() : `<section class="card"><div class="muted">Prepara la prossima chiamata: cerca chi ti interessa qui sotto.</div></section>${nominateBox(true)}`}
+      ${isAdmin() && au.turn_order ? `<section class="card row"><span class="label">Cambia turno</span><select id="turn-sel" class="grow" style="width:auto">${S.teams.map((t) => `<option value="${t.id}" ${t.id === turn ? "selected" : ""}>${esc(t.name)}</option>`).join("")}</select><button class="btn small" data-act="set-turn">Imposta</button></section>` : ""}`;
+  }
+  const teamsBox = `<section class="card"><div class="label">Squadre</div><div class="scroll"><table><thead><tr><th>Squadra</th><th>Crediti</th><th>Rosa</th><th>BC</th><th>FC</th><th>Max</th></tr></thead><tbody>${S.teams.map((t) => {
+    const r = rosterOf(t.id).map((x) => P(x.player_id));
+    return `<tr><td class="team ${t.id === S.sess.team_id ? "mine-name" : ""}" style="font-weight:700">${esc(t.name)}${a.next_team_id === t.id && a.status !== "open" ? ' <span class="chip on">turno</span>' : ""}</td><td>${credits(t.id)}</td><td>${r.length}/${ro.size}</td><td>${r.filter((p) => p.court === "BC").length}/${ro.bc}</td><td>${r.filter((p) => p.court === "FC").length}/${ro.fc}</td><td>${Math.max(0, maxBid(t.id))}</td></tr>`;
+  }).join("")}</tbody></table></div></section>`;
+  return head("Asta", `${R().credits} crediti a testa · rosa da ${ro.size} (${ro.bc} BC + ${ro.fc} FC) · max ${ro.max_per_nba_team} per squadra NBA`) + `<div class="stack">${board}${teamsBox}${myRosterBox()}</div>`;
+}
+function nominateBox(previewOnly = false) {
+  const taken = new Set(S.roster.map((r) => r.player_id));
+  const qs = S.search.toLowerCase();
+  let list = [...S.players.values()].filter((p) => p.active && p.team_abbr);
+  if (S.onlyFree) list = list.filter((p) => !taken.has(p.id));
+  if (S.court) list = list.filter((p) => p.court === S.court);
+  if (qs) list = list.filter((p) => p.name.toLowerCase().includes(qs) || (p.team_abbr || "").toLowerCase() === qs);
+  list.sort((a, b) => estFp(b.id) - estFp(a.id));
+  const base = +(R().auction || {}).base_price || 1;
+  return `<section class="card stack">
+    <div class="row"><input id="pl-search" class="grow" style="width:auto" placeholder="Cerca giocatore o squadra (es. LAL)" value="${esc(S.search)}">
+    <div class="seg"><button class="${!S.court ? "on" : ""}" data-court="">Tutti</button><button class="${S.court === "BC" ? "on" : ""}" data-court="BC">BC</button><button class="${S.court === "FC" ? "on" : ""}" data-court="FC">FC</button></div></div>
+    <label class="row" style="gap:8px"><input type="checkbox" id="only-free" ${S.onlyFree ? "checked" : ""}> <span>Solo liberi</span></label>
+    <div class="list" id="pl-list">${list.slice(0, 30).map((p) => {
+      const l = S.last.get(p.id), owner = S.roster.find((r) => r.player_id === p.id);
+      return `<div class="item">${avatar(p)}<div class="grow" style="min-width:0"><div class="ellipsis" style="font-weight:700">${esc(p.name)}</div>
+        <div class="row" style="gap:6px">${courtChip(p)}<span class="muted" style="font-size:.85rem">${esc(p.team_abbr)}</span>${injChip(p)}</div>
+        <div class="muted num" style="font-size:.8rem">${l ? `25-26: ${r1(l.pts)} pt · ${r1(l.reb)} rb · ${r1(l.ast)} as · ${l.gp} gare` : "nessuna statistica 25-26"}</div></div>
+        <div style="text-align:right"><div class="num" style="font-family:var(--display);font-weight:900;font-size:1.35rem">${r1(estFp(p.id))}</div>
+        ${owner ? `<span class="chip">${esc(teamName(owner.team_id))} · ${owner.price}</span>` : previewOnly ? "" : `<button class="btn small primary" data-nom="${p.id}">Chiama a ${base}</button>`}</div></div>`;
+    }).join("") || '<div class="empty">Nessun giocatore trovato</div>'}</div>
+    ${list.length > 30 ? `<div class="muted">Mostro i primi 30 per media punti. Usa la ricerca per gli altri.</div>` : ""}
+  </section>`;
+}
+function myRosterBox() {
+  const mine = rosterOf(S.sess.team_id).map((r) => ({ ...P(r.player_id), price: r.price })).sort((a, b) => b.price - a.price);
+  return `<section class="card"><div class="label">La tua rosa</div>${mine.length ? `<div class="list">${mine.map((p) => `<div class="item">${courtChip(p)}<span class="grow ellipsis">${esc(p.name)} <span class="muted">${esc(p.team_abbr || "")}</span></span><b class="num">${p.price}</b></div>`).join("")}</div>` : '<div class="empty">Ancora nessuno</div>'}</section>`;
+}
+
+/* timer asta */
+let closing = null;
+function tick() {
+  const a = S.auction; if (!a || a.status !== "open" || !a.ends_at) return;
+  const left = new Date(a.ends_at).getTime() - now();
+  const total = (+(R().auction || {}).timer_seconds || 20) * 1000;
+  const secs = $("#secs"), bar = $("#tbar"), board = $("#board");
+  if (secs) secs.textContent = Math.max(0, Math.ceil(left / 1000));
+  if (bar) bar.style.width = Math.max(0, Math.min(100, (left / total) * 100)) + "%";
+  if (board) board.classList.toggle("hot", left < 5000);
+  if (left <= 0 && closing !== a.ends_at) {
+    closing = a.ends_at;
+    setTimeout(() => rpc("auction_close", { p_league: S.sess.league_id }).catch(() => {}), 300 + Math.random() * 500);
+  }
+}
+setInterval(tick, 250);
+
+/* ---------- CLASSIFICA ---------- */
+async function classificaView() {
+  S.standings = await q(sb.from("standings").select("*").eq("league_id", S.sess.league_id));
+  const h2h = S.league.mode === "h2h", k = +(R().playoffs || {}).teams || 4;
+  const rows = [...S.standings].sort((a, b) => h2h ? (b.wins - b.losses) - (a.wins - a.losses) || b.total_points - a.total_points : b.total_points - a.total_points);
+  const po = await q(sb.from("matchups").select("*").eq("league_id", S.sess.league_id).eq("phase", "playoff").order("round").order("slot"));
+  let bracket = "";
+  if (po.length) {
+    const ts = await q(sb.from("team_scores").select("team_id,game_date,points").eq("league_id", S.sess.league_id).in("game_date", [...new Set(po.map((m) => m.game_date))]));
+    const rounds = [...new Set(po.map((m) => m.round))];
+    bracket = `<section class="card"><div class="label">Playoff</div>${rounds.map((r) => {
+      const ms = po.filter((m) => m.round === r), dates = [...new Set(ms.map((m) => m.game_date))];
+      const sum = (t) => ts.filter((x) => x.team_id === t && dates.includes(x.game_date)).reduce((a, x) => a + +x.points, 0);
+      const slots = [...new Map(ms.map((m) => [m.slot, m])).values()];
+      return `<h3 style="margin-top:10px">${rounds.length - r === 0 && slots.length === 1 ? "Finale" : "Turno " + r} <span class="muted" style="font:500 .85rem var(--body)">${fmtDay(dates[0])} → ${fmtDay(dates[dates.length - 1])}</span></h3>
+      ${slots.map((m) => { const a = sum(m.home_team), b = sum(m.away_team); return `<div class="match" style="cursor:default"><div class="t ellipsis" style="font-weight:700">${esc(teamName(m.home_team))}</div><div class="score"><span class="${a > b ? "lead" : ""}">${r1(a)}</span> – <span class="${b > a ? "lead" : ""}">${r1(b)}</span></div><div class="t r ellipsis" style="font-weight:700">${esc(teamName(m.away_team))}</div></div>`; }).join("")}`;
+    }).join("")}</section>`;
+  }
+  return head("Classifica", h2h ? `Vittorie e sconfitte nelle sfide quotidiane · i primi ${k} ai playoff` : "Punti totali della stagione") + `<div class="stack">
+    <section class="card scroll"><table><thead><tr><th>#</th><th style="text-align:left">Squadra</th>${h2h ? "<th>V</th><th>S</th><th>%</th><th>Fatti</th><th>Subiti</th>" : "<th>Punti</th>"}</tr></thead><tbody>
+    ${rows.map((r, i) => { const g = r.wins + r.losses + r.ties; return `<tr class="${h2h && i === k ? "cut" : ""}"><td class="muted">${i + 1}</td><td class="team ${r.team_id === S.sess.team_id ? "mine-name" : ""}" style="text-align:left;font-weight:700">${esc(r.name)}</td>${h2h ? `<td>${r.wins}</td><td>${r.losses}</td><td>${g ? (r.wins / g).toFixed(3).replace(/^0/, "") : "—"}</td><td>${r1(r.total_points)}</td><td>${r1(r.points_against)}</td>` : `<td><b>${r1(r.total_points)}</b></td>`}</tr>`; }).join("")}
+    </tbody></table></section>
+    ${bracket}
+    <section class="card"><div class="label">Rose</div>${S.teams.map((t) => {
+      const r = rosterOf(t.id).map((x) => ({ ...P(x.player_id), price: x.price })).sort((a, b) => (a.court > b.court ? 1 : -1) || b.price - a.price);
+      return `<details style="border-top:1px solid var(--line);padding:10px 0"><summary class="row between"><b class="${t.id === S.sess.team_id ? "mine-name" : ""}">${esc(t.name)}</b><span class="muted num">${r.length} giocatori · ${credits(t.id)} crediti</span></summary>
+      <div class="list" style="margin-top:6px">${r.map((p) => `<div class="item">${courtChip(p)}<span class="grow ellipsis">${esc(p.name)} <span class="muted">${esc(p.team_abbr || "")}</span> ${injChip(p)}</span><span class="num muted">${p.price}</span></div>`).join("") || '<div class="muted">Vuota</div>'}</div></details>`;
+    }).join("")}</section>
+  </div>`;
+}
+
+/* ---------- LEGA ---------- */
+const RULE_FIELDS = [
+  ["Punteggio per statistica", [["scoring.pts", "Punto segnato"], ["scoring.reb", "Rimbalzo"], ["scoring.ast", "Assist"], ["scoring.stl", "Palla rubata"], ["scoring.blk", "Stoppata"], ["scoring.tov", "Palla persa"], ["scoring.fg3m", "Tripla segnata (extra)"], ["scoring.fg_miss", "Tiro sbagliato"], ["scoring.ft_miss", "Libero sbagliato"], ["scoring.pf", "Fallo"]]],
+  ["Bonus", [["bonus.double_double", "Doppia doppia"], ["bonus.triple_double", "Tripla doppia"]]],
+  ["Rosa e quintetto", [["roster.size", "Giocatori in rosa"], ["roster.bc", "Di cui back court"], ["roster.fc", "Di cui front court"], ["roster.starters", "Titolari"], ["roster.min_bc_start", "Min BC titolari"], ["roster.min_fc_start", "Min FC titolari"], ["roster.max_per_nba_team", "Max per squadra NBA"]]],
+  ["Crediti e asta", [["credits", "Crediti a testa"], ["auction.timer_seconds", "Timer chiamata (sec)"], ["auction.reset_seconds", "Tempo minimo dopo un rilancio (sec)"], ["auction.base_price", "Prezzo base"], ["auction.min_increment", "Rilancio minimo"], ["auction.turn_order", "Chiamate a turno", "bool"]]],
+  ["Capitano e mercato", [["captain.enabled", "Capitano attivo", "bool"], ["captain.multiplier", "Moltiplicatore capitano"], ["captain.per_week", "Capitani a settimana"], ["market.release_refund_pct", "Rimborso svincolo (%)"]]],
+  ["Playoff", [["playoffs.teams", "Squadre ai playoff"], ["playoffs.days_per_round", "Giornate per turno"]]],
+];
+const getPath = (o, p) => p.split(".").reduce((a, k) => a?.[k], o);
+function legaView() {
+  const lg = S.league, adm = isAdmin(), rules = R();
+  const stLbl = { setup: "Iscrizioni", auction: "Asta", season: "Stagione", finished: "Finita" };
+  const rulesForm = RULE_FIELDS.map(([title, fields]) => `<div><div class="label" style="margin:8px 0 6px">${title}</div><div class="grid2">${fields.map(([path, label, type]) => {
+    const v = getPath(rules, path);
+    if (type === "bool") return `<label class="row field" style="flex-direction:row;gap:8px"><input type="checkbox" id="r-${path}" data-rule="${path}" data-type="bool" ${v ? "checked" : ""} ${adm ? "" : "disabled"}> <span>${label}</span></label>`;
+    return `<label class="field"><span class="muted" style="font-size:.85rem">${label}</span><input type="number" step="any" id="r-${path}" data-rule="${path}" value="${v ?? 0}" ${adm ? "" : "disabled"}></label>`;
+  }).join("")}</div></div>`).join("");
+  return head("Lega", `${stLbl[lg.status]} · ${lg.mode === "h2h" ? "Sfide quotidiane + playoff" : "Punti totali"}`) + `<div class="stack">
+    <section class="card row between"><div><div class="label">Codice per invitare gli amici</div><div style="font-family:var(--display);font-weight:900;font-size:2.4rem;letter-spacing:.08em" id="code-txt">${esc(lg.code)}</div></div>
+      <button class="btn" data-act="copy-code">Copia invito</button></section>
+    <section class="card"><div class="label">Squadre (${S.teams.length})</div><div class="list">${S.teams.map((t) => `<div class="item"><span class="grow"><b class="${t.id === S.sess.team_id ? "mine-name" : ""}">${esc(t.name)}</b> <span class="muted">${esc(t.owner_name || "")}</span> ${t.is_admin ? '<span class="chip">admin</span>' : ""}</span>
+      ${adm ? `<label class="row" style="gap:6px"><span class="muted" style="font-size:.8rem">± crediti</span><input type="number" style="width:84px" id="adj-${t.id}" value="${t.credit_adjust || 0}"></label><button class="btn small" data-adj="${t.id}">OK</button>` : `<span class="muted num">${credits(t.id)} cr</span>`}</div>`).join("")}</div></section>
+    ${adm ? `<section class="card stack"><div class="label">Gestione (solo admin)</div>
+      <div class="grid2">
+        <label class="field"><span class="muted" style="font-size:.85rem">Fase</span><select id="lg-status">${Object.entries(stLbl).map(([k, v]) => `<option value="${k}" ${lg.status === k ? "selected" : ""}>${v}</option>`).join("")}</select></label>
+        <label class="field"><span class="muted" style="font-size:.85rem">Formato</span><select id="lg-mode2"><option value="h2h" ${lg.mode === "h2h" ? "selected" : ""}>Sfide + playoff</option><option value="total" ${lg.mode === "total" ? "selected" : ""}>Punti totali</option></select></label>
+        <label class="field"><span class="muted" style="font-size:.85rem">Inizio conteggio punti</span><input type="date" id="lg-start" value="${lg.season_start || "2026-10-20"}"></label>
+        <label class="field"><span class="muted" style="font-size:.85rem">Nome lega</span><input id="lg-name2" value="${esc(lg.name)}"></label>
+      </div>
+      <button class="btn primary" data-act="save-league">Salva fase e formato</button>
+      ${lg.mode === "h2h" ? `<div class="row"><button class="btn" data-act="gen-schedule">Genera calendario sfide</button><span class="muted" style="font-size:.85rem">Accoppia le squadre per ogni sera NBA dalla data di inizio. Rifallo se entra un nuovo amico.</span></div>
+      <div class="row"><input type="date" id="po-start" style="width:auto" value="${(rules.playoffs || {}).start_date || ""}"><button class="btn" data-act="gen-playoffs">Avvia playoff da questa data</button><button class="btn" data-act="next-round">Turno successivo</button></div>` : ""}
+    </section>` : ""}
+    <section class="card stack"><div class="label">Regole ${adm ? "(modificabili)" : ""}</div>${rulesForm}
+      ${adm ? `<button class="btn primary" data-act="save-rules">Salva regole</button><p class="muted" style="margin:0">I nuovi punteggi valgono dalle prossime giornate. Le giornate già calcolate non cambiano.</p>` : ""}</section>
+    ${adm ? `<section class="card stack"><div class="label">Correzioni rosa (admin)</div>
+      <p class="muted" style="margin:0">Per sistemare un errore dell'asta: assegna o togli un giocatore a mano.</p>
+      <div class="grid2"><label class="field"><span class="muted" style="font-size:.85rem">Giocatore (nome)</span><input id="as-name" list="as-list"><datalist id="as-list">${[...S.players.values()].filter((p) => p.active).map((p) => `<option value="${esc(p.name)}">`).join("")}</datalist></label>
+      <label class="field"><span class="muted" style="font-size:.85rem">Squadra</span><select id="as-team">${S.teams.map((t) => `<option value="${t.id}">${esc(t.name)}</option>`).join("")}</select></label>
+      <label class="field"><span class="muted" style="font-size:.85rem">Prezzo</span><input id="as-price" type="number" value="1"></label></div>
+      <div class="row"><button class="btn" data-act="assign">Assegna</button><button class="btn danger" data-act="unassign">Togli dalla rosa</button></div><div id="as-confirm"></div></section>` : ""}
+    <section class="card row between"><span class="muted">Sei entrato come <b>${esc(me()?.name || "")}</b></span><button class="btn small ghost" data-act="logout">Esci</button></section>
+  </div>`;
+}
+
+/* ---------- azioni ---------- */
+function bindCommon() {
+  const app = $("#app");
+  app.onclick = async (e) => {
+    const t = e.target.closest("button,[data-match],[data-team-open]"); if (!t || t.disabled) return;
+    const d = t.dataset, tok = S.sess?.token;
+    try {
+      if (d.day) { S.day = d.day; S.openMatch = null; return render(); }
+      if (d.match) { S.openMatch = S.openMatch === +d.match ? null : +d.match; return render(); }
+      if (d.teamOpen) { S.openMatch = S.openMatch === d.teamOpen ? null : d.teamOpen; return render(); }
+      if (d.lday) { S.lineupDate = d.lday; S.lineup = null; return render(); }
+      if (d.lu) {
+        const L = S.lineup, id = d.id, N = +(R().roster || {}).starters || 5;
+        if (d.lu === "s") {
+          if (L.starters.includes(id)) { L.starters = L.starters.filter((x) => x !== id); if (L.captain === id) L.captain = null; }
+          else { if (L.starters.length >= N) return toast(`Hai già ${N} titolari: togline uno prima`, true); L.starters.push(id); L.bench = L.bench.filter((x) => x !== id); }
+        } else {
+          if (L.bench.includes(id)) L.bench = L.bench.filter((x) => x !== id);
+          else { L.bench.push(id); L.starters = L.starters.filter((x) => x !== id); if (L.captain === id) L.captain = null; }
+        }
+        return render();
+      }
+      if (d.cap) { S.lineup.captain = S.lineup.captain === d.cap ? null : d.cap; return render(); }
+      if (d.court !== undefined) { S.court = d.court; return render(); }
+      if (d.nom) { await rpc("auction_nominate", { p_token: tok, p_player: d.nom, p_start: +(R().auction || {}).base_price || 1 }); return; }
+      if (d.bid) { await rpc("auction_bid", { p_token: tok, p_amount: +d.bid }); return; }
+      if (d.admAuction) { await rpc("admin_auction", { p_token: tok, p_action: d.admAuction, p_team: null }); return; }
+      if (d.adj) { await rpc("admin_team", { p_token: tok, p_team: d.adj, p_action: "credit_adjust", p_value: { value: +$("#adj-" + d.adj).value || 0 } }); toast("Crediti aggiornati"); return; }
+      switch (d.act) {
+        case "bid-custom": { const v = +$("#bid-custom").value; if (!v) return; await rpc("auction_bid", { p_token: tok, p_amount: v }); break; }
+        case "set-turn": await rpc("admin_auction", { p_token: tok, p_action: "set_turn", p_team: $("#turn-sel").value }); toast("Turno aggiornato"); break;
+        case "save-lineup": {
+          const L = S.lineup;
+          await rpc("set_lineup", { p_token: tok, p_date: L.date, p_starters: L.starters, p_bench: L.bench, p_captain: L.captain });
+          L.savedFor = L.date; toast("Quintetto salvato per " + fmtDay(L.date)); render(); break;
+        }
+        case "release": {
+          const box = $("#rel-confirm"), pid = $("#rel-p").value;
+          box.innerHTML = `<div class="row" style="margin-top:8px"><span class="grow">Svincolare davvero ${esc(P(pid).name)}?</span><button class="btn small danger" data-act="release-yes" data-pid="${pid}">Sì, svincola</button><button class="btn small" data-act="release-no">No</button></div>`; break;
+        }
+        case "release-yes": await rpc("release_player", { p_token: tok, p_player: d.pid }); S.lineup = null; toast("Giocatore svincolato"); break;
+        case "release-no": $("#rel-confirm").innerHTML = ""; break;
+        case "copy-code": {
+          const txt = `Entra nella mia lega Fanta NBA "${S.league.name}"! Apri ${location.href.split("#")[0]} → "Ho un codice" → ${S.league.code}`;
+          try { await navigator.clipboard.writeText(txt); toast("Invito copiato"); } catch { const r = document.createRange(); r.selectNodeContents($("#code-txt")); getSelection().removeAllRanges(); getSelection().addRange(r); toast("Copia il codice selezionato"); }
+          break;
+        }
+        case "save-league":
+          await rpc("admin_update_league", { p_token: tok, p_patch: { status: $("#lg-status").value, mode: $("#lg-mode2").value, season_start: $("#lg-start").value || null, name: $("#lg-name2").value.trim() || S.league.name } });
+          toast("Lega aggiornata"); break;
+        case "save-rules": {
+          const patch = {};
+          app.querySelectorAll("[data-rule]").forEach((inp) => {
+            const keys = inp.dataset.rule.split("."); let o = patch;
+            keys.slice(0, -1).forEach((k) => (o = o[k] = o[k] || {}));
+            o[keys[keys.length - 1]] = inp.dataset.type === "bool" ? inp.checked : +inp.value;
+          });
+          if (patch.roster && patch.roster.bc + patch.roster.fc !== patch.roster.size) return toast("BC + FC deve essere uguale ai giocatori in rosa", true);
+          await rpc("admin_update_league", { p_token: tok, p_patch: { rules: patch } }); toast("Regole salvate"); break;
+        }
+        case "gen-schedule": { const n = await rpc("admin_generate_schedule", { p_token: tok }); toast(`Calendario creato: ${n} sfide`); break; }
+        case "gen-playoffs": { const v = $("#po-start").value; if (!v) return toast("Scegli la data di inizio playoff", true); const n = await rpc("admin_generate_playoffs", { p_token: tok, p_start: v }); toast(`Playoff creati (${n} sfide)`); break; }
+        case "next-round": { const v = $("#po-start").value; if (!v) return toast("Scegli la data di inizio del nuovo turno", true); const n = await rpc("admin_next_playoff_round", { p_token: tok, p_start: v }); toast(`Turno successivo creato (${n} sfide)`); break; }
+        case "assign": case "unassign": {
+          const name = $("#as-name").value.trim().toLowerCase(); const p = [...S.players.values()].find((x) => x.name.toLowerCase() === name);
+          if (!p) return toast("Giocatore non trovato: scegli dal suggerimento", true);
+          if (d.act === "assign") { await rpc("admin_team", { p_token: tok, p_team: $("#as-team").value, p_action: "assign_player", p_value: { player_id: p.id, price: +$("#as-price").value || 1 } }); toast(p.name + " assegnato"); }
+          else $("#as-confirm").innerHTML = `<div class="row" style="margin-top:8px"><span class="grow">Togliere ${esc(p.name)} dalla sua rosa? I crediti tornano alla squadra.</span><button class="btn small danger" data-act="unassign-yes" data-pid="${p.id}">Sì, togli</button><button class="btn small" data-act="unassign-no">No</button></div>`;
+          break;
+        }
+        case "unassign-yes": { const owner = S.roster.find((r) => r.player_id === d.pid); await rpc("admin_team", { p_token: tok, p_team: owner?.team_id || S.teams[0].id, p_action: "remove_player", p_value: { player_id: d.pid } }); toast("Giocatore tolto"); $("#as-confirm").innerHTML = ""; break; }
+        case "unassign-no": $("#as-confirm").innerHTML = ""; break;
+        case "logout": store.del("fantanba.sess"); S.sess = null; S.league = null; if (channel) sb.removeChannel(channel); render(); break;
+      }
+    } catch (err) { toast(err.message, true); }
+  };
+  const ps = $("#pl-search");
+  if (ps) ps.oninput = () => { S.search = ps.value; const pos = ps.selectionStart; render().then(() => { const n = $("#pl-search"); if (n) { n.focus(); n.setSelectionRange(pos, pos); } }); };
+  const of = $("#only-free"); if (of) of.onchange = () => { S.onlyFree = of.checked; render(); };
+  app.onkeydown = (e) => { if ((e.key === "Enter" || e.key === " ") && e.target.matches("[data-match],[data-team-open]")) { e.preventDefault(); e.target.click(); } };
+}
+
+/* ---------- avvio ---------- */
+(async function boot() {
+  try {
+    await loadStatic();
+    if (S.sess) {
+      try { await loadLeague(); subscribe(); }
+      catch { store.del("fantanba.sess"); S.sess = null; S.league = null; }
+    }
+  } catch (e) { $("#app").innerHTML = `<div class="empty">Non riesco a collegarmi al server. Controlla la connessione e ricarica.<br><small>${esc(e.message)}</small></div>`; return; }
+  render();
+  // ricarica dati ogni 2 minuti per punteggi e infortuni
+  setInterval(async () => { if (!S.sess || !S.league) return; if (S.tab === "oggi" || S.tab === "classifica") render(); }, 120000);
+  document.addEventListener("visibilitychange", async () => { if (!document.hidden && S.sess && S.league) { try { await loadLeague(); await loadBids(); render(); } catch {} } });
+})();
+</script>
+</body>
+</html>
