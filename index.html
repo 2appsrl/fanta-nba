@@ -278,7 +278,7 @@ async function loadLeague() {
 }
 async function loadBids() {
   const a = S.auction; if (!a?.player_id) { S.bids = []; return; }
-  S.bids = await q(sb.from("bids").select("*").eq("league_id", S.sess.league_id).eq("player_id", a.player_id).order("id", { ascending: false }).limit(15));
+  S.bids = await q(sb.from("bids").select("*").eq("league_id", S.sess.league_id).eq("player_id", a.player_id).gte("created_at", a.opened_at || "1970-01-01").order("id", { ascending: false }).limit(15));
 }
 
 let channel = null, reloadT = null;
@@ -545,7 +545,7 @@ function astaView() {
       <div class="row"><input id="bid-custom" type="number" inputmode="numeric" min="${minNext}" max="${myMax}" placeholder="Offerta libera (max ${myMax})" class="grow" style="width:auto"><button class="btn" data-act="bid-custom">Offri</button></div>`}
       <div class="muted num" style="font-size:.85rem">Crediti: ${credits(S.sess.team_id)} · offerta massima possibile: ${myMax}</div>
       ${S.bids.length ? `<div class="feed">${S.bids.map((b) => `<div class="row between"><span>${esc(teamName(b.team_id))}</span><b class="num">${b.amount}</b></div>`).join("")}</div>` : ""}
-      ${isAdmin() ? `<div class="row"><button class="btn small" data-adm-auction="end_now">Aggiudica ora</button><button class="btn small danger" data-adm-auction="cancel">Annulla questo giocatore</button></div>` : ""}
+      ${isAdmin() ? `<div class="row"><button class="btn small" data-adm-auction="end_now">Aggiudica ora a ${esc(teamName(a.current_team_id))} per ${a.current_bid}</button></div>` : ""}
     </section>`;
   } else {
     const turn = a.next_team_id, myTurn = !au.turn_order || !turn || turn === S.sess.team_id || isAdmin();
