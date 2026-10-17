@@ -216,7 +216,7 @@ const S = {
   players: new Map(), last: new Map(), cur: new Map(), values: new Map(),
   mk: { give: [], get: [], tradeTo: "", givec: 0, getc: 0, msg: "", fa: null, faAmt: "", faDrop: "", rel: null, newTrade: false, faSearch: "", faCourt: "", faBand: "", faPage: 0 },
   day: null, lineupDate: null, lineup: null, openMatch: null,
-  search: "", court: "", onlyFree: true, band: "", page: 0,
+  search: "", court: "", onlyFree: true, band: "", page: 0, favs: new Set(), onlyFav: false,
 };
 const me = () => S.teams.find((t) => t.id === S.sess?.team_id);
 const isAdmin = () => !!me()?.is_admin;
@@ -283,6 +283,7 @@ async function refreshInjuries() {
     for (const r of rows) { const p = S.players.get(r.id); if (p) { p.injury_status = r.injury_status; p.injury_note = r.injury_note; } }
   } catch {}
 }
+const favStar = (id) => `<button class="star ${S.favs.has(id) ? "on" : ""}" data-fav="${id}" aria-label="${S.favs.has(id) ? "Togli dai preferiti" : "Aggiungi ai preferiti"}" title="Preferito">★</button>`;
 const courtChip = (p) => (p.court ? `<span class="chip ${p.court.toLowerCase()}">${p.court}</span>` : "");
 const avatar = (p, lg) => p.headshot ? `<img class="avatar${lg ? " lg" : ""}" src="${esc(p.headshot)}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">` : `<span class="avatar${lg ? " lg" : ""}"></span>`;
 
@@ -314,6 +315,7 @@ async function loadLeague() {
   if (!lg) throw new Error("Lega non trovata");
   S.league = lg; S.teams = teams; S.roster = roster; S.auction = auction; S.standings = st;
   S.values = new Map(vals.map((v) => [v.player_id, v]));
+  try { S.favs = new Set(await rpc("my_favorites", { p_token: S.sess.token })); } catch {}
 }
 async function loadBids() {
   const a = S.auction; if (!a?.player_id) { S.bids = []; return; }
@@ -641,6 +643,7 @@ function nominateBox(previewOnly = false) {
   const qs = S.search.toLowerCase();
   let list = [...S.players.values()].filter((p) => p.active && p.team_abbr);
   if (S.onlyFree) list = list.filter((p) => !taken.has(p.id));
+  if (S.onlyFav) list = list.filter((p) => S.favs.has(p.id));
   if (S.court) list = list.filter((p) => p.court === S.court);
   if (qs) list = list.filter((p) => p.name.toLowerCase().includes(qs) || (p.team_abbr || "").toLowerCase() === qs);
   list = inBand(list, S.band);
@@ -650,17 +653,18 @@ function nominateBox(previewOnly = false) {
   return `<section class="card stack">
     <div class="row"><input id="pl-search" class="grow" style="width:auto" placeholder="Cerca giocatore o squadra (es. LAL)" value="${esc(S.search)}">
     <div class="seg"><button class="${!S.court ? "on" : ""}" data-court="">Tutti</button><button class="${S.court === "BC" ? "on" : ""}" data-court="BC">BC</button><button class="${S.court === "FC" ? "on" : ""}" data-court="FC">FC</button></div></div>
-    <label class="row" style="gap:8px"><input type="checkbox" id="only-free" ${S.onlyFree ? "checked" : ""}> <span>Solo liberi</span></label>
+    <div class="row" style="gap:16px"><label class="row" style="gap:8px"><input type="checkbox" id="only-free" ${S.onlyFree ? "checked" : ""}> <span>Solo liberi</span></label>
+    <button class="btn small ${S.onlyFav ? "primary" : ""}" data-act="only-fav">★ Preferiti (${S.favs.size})</button></div>
     ${bandBar(S.band, "band")}
     ${pager(list.length, S.page, "page")}
     <div class="list" id="pl-list">${pageOf(list, S.page).map((p) => {
       const l = S.last.get(p.id), owner = S.roster.find((r) => r.player_id === p.id);
-      return `<div class="item">${avatar(p)}<div class="grow" style="min-width:0"><div class="ellipsis" style="font-weight:700">${esc(p.name)}</div>
+      return `<div class="item">${favStar(p.id)}${avatar(p)}<div class="grow" style="min-width:0"><div class="ellipsis" style="font-weight:700">${esc(p.name)}</div>
         <div class="row" style="gap:6px">${courtChip(p)}<span class="muted" style="font-size:.85rem">${esc(p.team_abbr)}</span>${injChip(p)}</div>
         <div class="muted num" style="font-size:.8rem">${l ? `25-26: ${r1(l.pts)} pt · ${r1(l.reb)} rb · ${r1(l.ast)} as · ${l.gp} gare` : "nessuna statistica 25-26"}</div></div>
         <div style="text-align:right"><div class="label">Quot.</div><div class="num" style="font-family:var(--display);font-weight:900;font-size:1.35rem;line-height:1">${val(p.id)}</div><div class="muted num" style="font-size:.78rem">${r1(estFp(p.id))} pt/gara</div>
         ${owner ? `<span class="chip">${esc(teamName(owner.team_id))} · ${owner.price}</span>` : previewOnly ? "" : `<button class="btn small primary" data-nom="${p.id}">Chiama a ${base}</button>`}</div></div>`;
-    }).join("") || '<div class="empty">Nessun giocatore trovato</div>'}</div>
+    }).join("") || `<div class="empty">${S.onlyFav ? "Nessun preferito qui. Tocca la ★ accanto a un giocatore per salvarlo." : "Nessun giocatore trovato"}</div>`}</div>
     ${pager(list.length, S.page, "page")}
   </section>`;
 }
@@ -811,6 +815,7 @@ async function tradeView() {
   let list = [...S.players.values()].filter((p) => p.active && p.team_abbr);
   list = pool === "fa" ? list.filter((p) => !ownerOf.has(p.id)) : list.filter((p) => ownerOf.has(p.id) && ownerOf.get(p.id).team_id !== my);
   if (M.faCourt) list = list.filter((p) => p.court === M.faCourt);
+  if (S.onlyFav) list = list.filter((p) => S.favs.has(p.id));
   if (qs) list = list.filter((p) => p.name.toLowerCase().includes(qs) || (p.team_abbr || "").toLowerCase() === qs || (pool === "teams" && teamName(ownerOf.get(p.id).team_id).toLowerCase().includes(qs)));
   list = inBand(list, M.faBand);
   list.sort((a, b) => val(b.id) - val(a.id) || estFp(b.id) - estFp(a.id));
@@ -820,6 +825,7 @@ async function tradeView() {
     <div class="muted" style="font-size:.85rem">${pool === "fa" ? (open ? "Offerta segreta · minimo = quotazione" : "Offerte solo a mercato aperto") : "Proponi uno scambio quando vuoi"}</div>
     <div class="row"><input id="fa-search" class="grow" style="width:auto" placeholder="${pool === "fa" ? "Cerca giocatore o squadra NBA" : "Cerca giocatore o squadra"}" value="${esc(M.faSearch)}">
     <div class="seg"><button class="${!M.faCourt ? "on" : ""}" data-fac="">Tutti</button><button class="${M.faCourt === "BC" ? "on" : ""}" data-fac="BC">BC</button><button class="${M.faCourt === "FC" ? "on" : ""}" data-fac="FC">FC</button></div></div>
+    <div class="row"><button class="btn small ${S.onlyFav ? "primary" : ""}" data-act="only-fav">★ Preferiti (${S.favs.size})</button></div>
     ${bandBar(M.faBand, "faband")}
     ${pager(list.length, M.faPage, "fapage")}
     <div class="list" id="fa-list">${pageOf(list, M.faPage).map((p) => {
@@ -827,7 +833,7 @@ async function tradeView() {
       const action = pool === "teams"
         ? `<button class="btn small primary" data-act="trade-for" data-pid="${p.id}" data-team="${own.team_id}">Proponi scambio</button>`
         : open ? (isOpen ? "" : `<button class="btn small primary" data-act="fa-open" data-pid="${p.id}">Offerta</button>`) : `<span class="chip">mercato chiuso</span>`;
-      return `<div class="item" style="flex-wrap:wrap">${avatar(p)}<div class="grow" style="min-width:0"><div class="ellipsis" style="font-weight:700">${esc(p.name)}</div>
+      return `<div class="item" style="flex-wrap:wrap">${favStar(p.id)}${avatar(p)}<div class="grow" style="min-width:0"><div class="ellipsis" style="font-weight:700">${esc(p.name)}</div>
         <div class="row" style="gap:6px">${courtChip(p)}<span class="muted" style="font-size:.85rem">${esc(p.team_abbr)} · ${r1(estFp(p.id))} pt/gara</span>${injChip(p)}${own ? `<span class="chip">${esc(teamName(own.team_id))}</span>` : ""}</div></div>
         <div style="text-align:right"><div class="label">Quot.</div><div class="num" style="font-family:var(--display);font-weight:900;font-size:1.35rem;line-height:1.1">${v}</div>${action}</div>
         ${isOpen && pool === "fa" && open ? `<div class="stack" style="width:100%">
@@ -957,12 +963,19 @@ function bindCommon() {
       if (d.adj) { await rpc("admin_team", { p_token: tok, p_team: d.adj, p_action: "credit_adjust", p_value: { value: +$("#adj-" + d.adj).value || 0 } }); toast("Crediti aggiornati"); return; }
       if (d.tg) { const M = S.mk, arr = M[d.tg]; const i = arr.indexOf(d.id); i >= 0 ? arr.splice(i, 1) : arr.push(d.id); return render(); }
       if (d.fac !== undefined) { S.mk.faCourt = d.fac; S.mk.faPage = 0; return render(); }
+      if (d.fav) {
+        const id = d.fav, on = !S.favs.has(id);
+        on ? S.favs.add(id) : S.favs.delete(id); render();
+        try { await rpc("toggle_favorite", { p_token: tok, p_player: id }); } catch (err) { on ? S.favs.delete(id) : S.favs.add(id); render(); throw err; }
+        return;
+      }
       if (d.pool) { Object.assign(S.mk, { pool: d.pool, faPage: 0, fa: null }); return render(); }
       if (d.band !== undefined) { S.band = d.band; S.page = 0; return render(); }
       if (d.faband !== undefined) { S.mk.faBand = d.faband; S.mk.faPage = 0; return render(); }
       if (d.page !== undefined) { S.page = +d.page; await render(); return $("#pl-list")?.scrollIntoView({ block: "start" }); }
       if (d.fapage !== undefined) { S.mk.faPage = +d.fapage; await render(); return $("#fa-list")?.scrollIntoView({ block: "start" }); }
       switch (d.act) {
+        case "only-fav": S.onlyFav = !S.onlyFav; S.page = 0; S.mk.faPage = 0; return render();
         case "new-trade": S.mk.newTrade = !S.mk.newTrade; return render();
         case "trade-for": { Object.assign(S.mk, { newTrade: true, tradeTo: d.team, get: [d.pid], give: [] }); await render(); return $("#trade-builder")?.scrollIntoView({ block: "start", behavior: "smooth" }); }
         case "rules": S.prevTab = S.tab; S.tab = "regole"; render(); return window.scrollTo(0, 0);
