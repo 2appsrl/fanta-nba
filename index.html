@@ -91,6 +91,9 @@ nav.tabs .in{display:grid;grid-template-columns:repeat(5,1fr);width:100%;max-wid
 .tab[aria-current="page"]{color:var(--ink)}
 .tab[aria-current="page"]::before{content:"";position:absolute;left:22%;right:22%;top:0;height:3px;background:var(--accent);border-radius:0 0 3px 3px}
 .tab .dot{position:absolute;top:8px;right:18%;width:8px;height:8px;border-radius:50%;background:var(--loss)}
+.tab .badge{position:absolute;top:4px;right:10%;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:var(--loss);color:#fff;font:700 .7rem/18px var(--body);letter-spacing:0}
+.alert{border:2px solid var(--loss);background:color-mix(in srgb,var(--loss) 8%,var(--surface));border-radius:var(--r);padding:12px 14px}
+.alert.warn{border-color:var(--warn);background:color-mix(in srgb,var(--warn) 9%,var(--surface))}
 
 /* tabellone */
 .board{background:var(--board);color:var(--board-ink);border:1px solid var(--line);border-radius:var(--r);padding:16px;position:relative;overflow:hidden}
@@ -260,6 +263,26 @@ function injChip(p) {
   const lbl = { out: "Out", "day-to-day": "In dubbio", questionable: "In dubbio", doubtful: "Difficile", probable: "Probabile", suspension: "Squalificato" }[s] || p.injury_status;
   return `<span class="chip ${cls}" title="${esc(p.injury_note || "")}">${esc(lbl)}</span>`;
 }
+// infortuni nella mia rosa: prima i titolari del prossimo quintetto, poi gli altri
+function myInjuries() {
+  const starters = new Set(S.myStarters || []);
+  return rosterOf(S.sess?.team_id).map((r) => P(r.player_id)).filter((p) => p.injury_status)
+    .map((p) => ({ p, starter: starters.has(p.id), out: /out|suspension|doubtful/i.test(p.injury_status) }))
+    .sort((a, b) => b.starter - a.starter || b.out - a.out);
+}
+async function loadMyStarters() {
+  if (!S.sess) return;
+  try {
+    const rows = await q(sb.from("lineups").select("starters,game_date").eq("team_id", S.sess.team_id).order("game_date", { ascending: false }).limit(1));
+    S.myStarters = rows[0]?.starters || [];
+  } catch { S.myStarters = []; }
+}
+async function refreshInjuries() {
+  try {
+    const rows = await q(sb.from("players").select("id,injury_status,injury_note").limit(2000));
+    for (const r of rows) { const p = S.players.get(r.id); if (p) { p.injury_status = r.injury_status; p.injury_note = r.injury_note; } }
+  } catch {}
+}
 const courtChip = (p) => (p.court ? `<span class="chip ${p.court.toLowerCase()}">${p.court}</span>` : "");
 const avatar = (p, lg) => p.headshot ? `<img class="avatar${lg ? " lg" : ""}" src="${esc(p.headshot)}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">` : `<span class="avatar${lg ? " lg" : ""}"></span>`;
 
@@ -331,7 +354,13 @@ function renderTabs() {
     b.toggleAttribute("aria-current", b.dataset.tab === S.tab);
     if (b.dataset.tab === S.tab) b.setAttribute("aria-current", "page");
     b.querySelector(".dot")?.remove();
+    b.querySelector(".badge")?.remove();
     if (b.dataset.tab === "asta" && !isTrade() && S.auction?.status === "open" && S.tab !== "asta") b.insertAdjacentHTML("beforeend", '<span class="dot"></span>');
+    if (b.dataset.tab === "formazione" && S.league) {
+      const inj = myInjuries(), hot = inj.filter((x) => x.starter).length;
+      if (hot) b.insertAdjacentHTML("beforeend", `<span class="badge" title="Titolari infortunati">${hot}</span>`);
+      else if (inj.length) b.insertAdjacentHTML("beforeend", '<span class="dot" style="background:var(--warn)"></span>');
+    }
   });
 }
 $("#tabs").addEventListener("click", (e) => {
@@ -400,7 +429,7 @@ function bindLogin() {
     try {
       const res = await fn();
       S.sess = res; store.set("fantanba.sess", res);
-      await loadLeague(); subscribe(); S.tab = S.league.status === "auction" ? "asta" : "oggi"; render();
+      await loadLeague(); subscribe(); await loadMyStarters(); S.tab = S.league.status === "auction" ? "asta" : "oggi"; render();
       if (res.created) toast("Lega creata. Codice: " + res.code);
     } catch (e) { toast(e.message, true); }
   };
@@ -519,8 +548,15 @@ async function formazioneView() {
       <div class="seg"><button class="${isS ? "on" : ""}" data-lu="s" data-id="${p.id}">Tit</button><button class="${bi >= 0 ? "on p" : ""}" data-lu="b" data-id="${p.id}">${bi >= 0 ? "Pan " + (bi + 1) : "Pan"}</button></div></div>`;
   };
   const group = (c, label) => `<section class="card"><div class="label">${label}</div><div class="list">${mine.filter((p) => p.court === c).sort((a, b) => estFp(b.id) - estFp(a.id)).map(row).join("") || '<div class="empty">—</div>'}</div></section>`;
+  const injStart = new Set(L.starters);
+  const inj = mine.filter((p) => p.injury_status).map((p) => ({ p, starter: injStart.has(p.id), out: /out|suspension|doubtful/i.test(p.injury_status) })).sort((a, b) => b.starter - a.starter || b.out - a.out);
+  const injBox = inj.length ? `<section class="alert ${inj.some((x) => x.starter) ? "" : "warn"} stack" style="gap:8px">
+    <div class="row between"><b>${inj.some((x) => x.starter) ? `${inj.filter((x) => x.starter).length} titolar${inj.filter((x) => x.starter).length > 1 ? "i" : "e"} infortunat${inj.filter((x) => x.starter).length > 1 ? "i" : "o"}` : "Infortuni in rosa"}</b>${inj.some((x) => x.starter) ? '<span class="muted" style="font-size:.85rem">valuta un cambio</span>' : ""}</div>
+    ${inj.map((x) => `<div class="row" style="gap:8px;align-items:flex-start">${injChip(x.p)}<div class="grow" style="min-width:0"><b>${esc(x.p.name)}</b> ${x.starter ? '<span class="chip on">titolare</span>' : '<span class="chip">panchina/fuori</span>'}<div class="muted" style="font-size:.82rem">${esc(x.p.injury_note || "")}</div></div></div>`).join("")}
+  </section>` : "";
   return head("Quintetto", d ? `${fmtDay(d)}${deadline ? (locked ? " · chiuso" : " · chiude alle " + fmtTime(deadline)) : ""}` : "Nessuna partita in programma") + `
   <div class="stack">
+    ${injBox}
     <div class="daypick">${upcoming.map((x) => `<button class="btn small ${x === d ? "primary" : ""}" data-lday="${x}">${fmtDay(x)}</button>`).join("")}</div>
     <section class="card row between">
       <div><div class="label">Titolari</div><div class="num" style="font-family:var(--display);font-weight:900;font-size:1.8rem;color:${okCount && okMix ? "var(--win)" : "var(--ink)"}">${L.starters.length}/${N}</div></div>
@@ -959,7 +995,7 @@ function bindCommon() {
         case "save-lineup": {
           const L = S.lineup;
           await rpc("set_lineup", { p_token: tok, p_date: L.date, p_starters: L.starters, p_bench: L.bench, p_captain: L.captain });
-          L.savedFor = L.date; toast("Quintetto salvato per " + fmtDay(L.date)); render(); break;
+          L.savedFor = L.date; S.myStarters = [...L.starters]; toast("Quintetto salvato per " + fmtDay(L.date)); render(); break;
         }
         case "release": {
           const box = $("#rel-confirm"), pid = $("#rel-p").value;
@@ -1028,8 +1064,10 @@ function bindCommon() {
   } catch (e) { $("#app").innerHTML = `<div class="empty">Non riesco a collegarmi al server. Controlla la connessione e ricarica.<br><small>${esc(e.message)}</small></div>`; return; }
   render();
   // ricarica dati ogni 2 minuti per punteggi e infortuni
+  await loadMyStarters(); renderTabs();
   setInterval(async () => { if (!S.sess || !S.league) return; if (S.tab === "oggi" || S.tab === "classifica") render(); }, 120000);
-  document.addEventListener("visibilitychange", async () => { if (!document.hidden && S.sess && S.league) { try { await loadLeague(); await loadBids(); render(); } catch {} } });
+  setInterval(async () => { if (!S.sess || !S.league) return; await refreshInjuries(); await loadMyStarters(); if (S.tab === "formazione") render(); else renderTabs(); }, 600000);
+  document.addEventListener("visibilitychange", async () => { if (!document.hidden && S.sess && S.league) { try { await loadLeague(); await loadBids(); await refreshInjuries(); await loadMyStarters(); render(); } catch {} } });
 })();
 </script>
 </body>
