@@ -72,10 +72,16 @@ async function syncInjuries() {
   for (const t of d.injuries || []) for (const i of t.injuries || []) {
     const href = (i.athlete?.links || []).map((l: any) => l.href).join(' ');
     const m = href.match(/\/id\/(\d+)/);
-    if (m) inj.push({ id: m[1], status: i.status, note: i.shortComment || i.longComment || '' });
+    const dt = i.details || {};
+    if (m) inj.push({ id: m[1], row: {
+      injury_status: i.status, injury_note: i.shortComment || i.longComment || '', injury_long: i.longComment || null,
+      injury_type: dt.type || null, injury_side: dt.side || null, injury_detail: dt.detail || null,
+      injury_return: dt.returnDate || null, injury_date: i.date || null,
+    } });
   }
-  await sb.from('players').update({ injury_status: null, injury_note: null }).not('injury_status', 'is', null);
-  for (const x of inj) await sb.from('players').update({ injury_status: x.status, injury_note: x.note }).eq('id', x.id);
+  const empty = { injury_status: null, injury_note: null, injury_long: null, injury_type: null, injury_side: null, injury_detail: null, injury_return: null, injury_date: null };
+  await sb.from('players').update(empty).not('injury_status', 'is', null);
+  for (const x of inj) await sb.from('players').update(x.row).eq('id', x.id);
   return inj.length;
 }
 
