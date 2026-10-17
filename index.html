@@ -222,6 +222,20 @@ details>summary::-webkit-details-marker{display:none}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
 @keyframes logoIn{from{opacity:0;transform:skewX(-6deg) translateY(30px) scale(.9)}to{opacity:1;transform:skewX(-6deg)}}
 @keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+
+/* primo accesso */
+.onb{position:fixed;inset:0;z-index:100;background:rgba(3,5,8,.92);display:grid;place-items:center;padding:max(12px,env(safe-area-inset-top,0px)) 12px max(12px,env(safe-area-inset-bottom,0px))}
+.onb-box{position:relative;height:min(100%,860px);aspect-ratio:9/16;max-width:100%;border-radius:18px;overflow:hidden;background:#000;box-shadow:0 30px 80px rgba(0,0,0,.6)}
+.onb-box video{width:100%;height:100%;object-fit:contain;display:block;background:#000}
+.onb-skip{position:absolute;top:12px;right:12px;z-index:2;border:1px solid rgba(255,255,255,.3);background:rgba(0,0,0,.55);color:#fff;border-radius:999px;padding:8px 16px;font-weight:700;min-height:40px;cursor:pointer}
+.onb-cta{position:absolute;left:0;right:0;bottom:0;padding:24px 18px 28px;display:flex;flex-direction:column;gap:12px;align-items:center;background:linear-gradient(transparent,rgba(0,0,0,.85) 45%)}
+.onb-title{font-family:var(--display);font-weight:900;font-size:2rem;color:#fff;letter-spacing:.02em}
+.onb-play{width:100%;min-height:54px;font-size:1.05rem}
+.tour{position:fixed;inset:0;z-index:100}
+.tour-hole{position:fixed;border-radius:12px;border:2px solid var(--accent);box-shadow:0 0 0 200vmax rgba(3,5,8,.72);transition:all .25s ease;pointer-events:none}
+.tour-tip{position:fixed;background:var(--surface);color:var(--ink);border-radius:14px;padding:14px 16px;box-shadow:0 18px 50px rgba(0,0,0,.45);border:1px solid var(--line)}
+.tour-t{font-family:var(--display);font-size:1.4rem;font-weight:900}
+.rules-video{width:min(100%,360px);aspect-ratio:9/16;border-radius:12px;background:#000;display:block}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 @keyframes pop{0%{transform:scale(1.12)}100%{transform:scale(1)}}
 .pop{animation:pop .35s ease-out}
@@ -506,6 +520,7 @@ async function render() {
   if (ticket !== render.seq) return;
   app.innerHTML = html;
   bindCommon(); tick();
+  if (!document.getElementById("onb") && !document.querySelector(".tour")) maybeOnboard();
   keepAwake(S.tab === "asta" && !isTrade() && S.league?.status === "auction");
 }
 
@@ -1195,6 +1210,68 @@ async function tradeView() {
   return head("Trade", `Crediti: ${credits(my)} · rosa ${mine.length}/${ro.size}`) + `<div class="stack">${winBox}${tradesBox}${bidsBox}${faBox}${rosaBox}${txBox}</div>`;
 }
 
+/* ---------- PRIMO ACCESSO: video + mini-tour (una volta per squadra) ---------- */
+function onboardingDone() {
+  const t = me(); if (!t) return true;
+  return !!t.onboarded_at || !!store.get("fantanba.onb." + t.id);
+}
+function finishOnboarding() {
+  const t = me(); if (t) store.set("fantanba.onb." + t.id, 1);
+  if (S.sess) rpc("mark_onboarded", { p_token: S.sess.token }).catch(() => {});
+}
+function maybeOnboard() {
+  if (S.onbShown || !S.sess || !S.league || onboardingDone()) return;
+  S.onbShown = true;
+  const el = document.createElement("div");
+  el.className = "onb"; el.id = "onb";
+  el.innerHTML = `<div class="onb-box">
+    <video id="onb-v" src="regole.mp4" poster="regole-poster.jpg" playsinline preload="metadata"></video>
+    <button class="onb-skip" data-onb="skip">Salta</button>
+    <div class="onb-cta" id="onb-cta"><div class="onb-title">Come si gioca</div>
+      <button class="btn primary onb-play" data-onb="play">▶ Guarda il video · 75 sec</button></div></div>`;
+  document.body.appendChild(el);
+  const v = el.querySelector("#onb-v");
+  const close = () => { el.remove(); startTour(); };
+  el.addEventListener("click", (e) => {
+    const b = e.target.closest("[data-onb]"); if (!b) return;
+    if (b.dataset.onb === "play") { el.querySelector("#onb-cta").remove(); v.controls = true; v.play().catch(() => {}); }
+    if (b.dataset.onb === "skip") { v.pause(); close(); }
+  });
+  v.addEventListener("ended", close);
+}
+function startTour() {
+  S.tab = "oggi"; render().then(() => {
+    const steps = [
+      { sel: '.tab[data-tab="oggi"]', t: "Oggi", d: "I punti della nottata. Tocca una sfida per vedere ogni giocatore." },
+      { sel: '.tab[data-tab="formazione"]', t: "Quintetto", d: "Ogni sera 5 titolari, prima della prima partita. Il pallino rosso ti avvisa se c'è un infortunato." },
+      { sel: '.tab[data-tab="asta"]', t: isTrade() ? "Trade" : "Asta", d: isTrade() ? "Scambi con gli amici e offerte sui free agent quando il mercato è aperto." : "L'asta si fa da qui, dal telefono. Dopo l'asta diventa Trade: scambi e mercato." },
+      { sel: '.tab[data-tab="classifica"]', t: "Classifica", d: "La classifica e le rose di tutte le squadre." },
+      { sel: '[data-act="rules"]', t: "Regole", d: "Regole e video sempre qui. Buon divertimento!" },
+    ];
+    let i = 0;
+    const wrap = document.createElement("div"); wrap.className = "tour"; document.body.appendChild(wrap);
+    const done = () => { wrap.remove(); removeEventListener("resize", show); finishOnboarding(); };
+    function show() {
+      const st = steps[i], target = document.querySelector(st.sel);
+      if (!target) { i++; return i < steps.length ? show() : done(); }
+      const r = target.getBoundingClientRect(), pad = 6, below = r.top < innerHeight / 2;
+      const tipW = Math.min(320, innerWidth - 32), left = Math.max(16, Math.min(innerWidth - tipW - 16, r.left + r.width / 2 - tipW / 2));
+      wrap.innerHTML = `<div class="tour-hole" style="left:${r.left - pad}px;top:${r.top - pad}px;width:${r.width + pad * 2}px;height:${r.height + pad * 2}px"></div>
+        <div class="tour-tip" style="width:${tipW}px;left:${left}px;${below ? `top:${r.bottom + 14}px` : `bottom:${innerHeight - r.top + 14}px`}">
+          <div class="row between"><b class="tour-t">${st.t}</b><span class="muted num" style="font-size:.8rem">${i + 1}/${steps.length}</span></div>
+          <p style="margin:6px 0 12px">${st.d}</p>
+          <div class="row between"><button class="btn small ghost" data-tour="skip">Salta</button><button class="btn small primary" data-tour="next">${i === steps.length - 1 ? "Iniziamo!" : "Avanti"}</button></div></div>`;
+    }
+    wrap.addEventListener("click", (e) => {
+      const b = e.target.closest("[data-tour]"); if (!b) return;
+      if (b.dataset.tour === "skip") return done();
+      i++; i < steps.length ? show() : done();
+    });
+    addEventListener("resize", show);
+    show();
+  });
+}
+
 /* ---------- REGOLE (grafiche, i numeri arrivano dalle regole della lega) ---------- */
 function regoleView() {
   const r = R(), ro = r.roster || {}, au = r.auction || {}, cap = r.captain || {}, mk = r.market || {}, po = r.playoffs || {}, sc = r.scoring || {}, bo = r.bonus || {};
@@ -1211,6 +1288,8 @@ function regoleView() {
   return `<header class="top"><button class="btn small" data-act="rules-back">‹ Indietro</button><div class="label">${esc(S.league.name)}</div></header>
   <h1 style="margin-bottom:12px">Regole</h1>
   <div class="stack">
+    <section class="card stack" style="align-items:center"><div class="label" style="align-self:flex-start">Il video in 75 secondi</div>
+      <video class="rules-video" src="regole.mp4" poster="regole-poster.jpg" controls playsinline preload="none"></video></section>
     ${sec("Come si vince", `<div class="grid2" style="grid-template-columns:repeat(auto-fit,minmax(240px,1fr))">
       ${mode(h2h, "Sfide ogni sera", tile("1 vs 1", "ogni sera NBA") + tile("V–S", "record") + tile("Top " + (po.teams || 4), "ai playoff") + tile(po.days_per_round || 7, "serate per turno"))}
       ${mode(!h2h, "Punti totali", tile("Σ", "somma punti") + tile("1", "classifica"))}</div>`)}
