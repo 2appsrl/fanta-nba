@@ -237,6 +237,11 @@ details>summary::-webkit-details-marker{display:none}
 .tour-tip{position:fixed;background:var(--surface);color:var(--ink);border-radius:14px;padding:14px 16px;box-shadow:0 18px 50px rgba(0,0,0,.45);border:1px solid var(--line)}
 .tour-t{font-family:var(--display);font-size:1.4rem;font-weight:900}
 .rules-video{width:min(100%,360px);aspect-ratio:9/16;border-radius:12px;background:#000;display:block}
+
+.pick{display:flex;flex-wrap:wrap;gap:8px}
+.pickbtn{display:flex;flex-direction:column;align-items:flex-start;gap:2px;border:1px solid rgba(255,255,255,.18);background:rgba(0,0,0,.35);color:#fff;border-radius:12px;padding:10px 14px;min-height:48px;cursor:pointer;text-align:left}
+.pickbtn span{font-size:.78rem;color:rgba(255,255,255,.6)}
+.pickbtn.on{border-color:#ff7a2e;background:rgba(255,122,46,.18);box-shadow:0 0 0 2px rgba(255,122,46,.35)}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 @keyframes pop{0%{transform:scale(1.12)}100%{transform:scale(1)}}
 .pop{animation:pop .35s ease-out}
@@ -731,8 +736,9 @@ const default_rules_sc = [["+1", "PTS"], ["+1", "REB"], ["+2", "AST"], ["+3", "S
 function loginView() {
   const f = (id, label, type = "text", extra = "") => `<label class="field"><span class="label">${label}</span><input id="${id}" type="${type}" ${extra}></label>`;
   const forms = {
-    accedi: `${f("lg-code", "Codice lega", "text", 'autocapitalize="characters" maxlength="6" placeholder="Es. 7F3K9A"')}
-             ${f("lg-team", "Nome squadra")}${f("lg-pin", "PIN", "password", 'inputmode="numeric" maxlength="8"')}
+    accedi: `${f("lg-code", "Codice lega", "text", 'autocapitalize="characters" autocomplete="off" maxlength="6" placeholder="Es. 7F3K9A"')}
+             <div class="field"><span class="label">La tua squadra</span><div id="team-pick" class="pick"><span class="muted" style="font-size:.9rem">Scrivi il codice lega per vedere le squadre</span></div><input type="hidden" id="lg-team"></div>
+             ${f("lg-pin", "PIN", "password", 'inputmode="numeric" autocomplete="current-password" maxlength="8"')}
              <button class="btn primary cta" data-act="login">Entra nell'arena <span aria-hidden="true">→</span></button>`,
     entra: `${f("lg-code", "Codice lega (te lo dà chi l'ha creata)", "text", 'autocapitalize="characters" maxlength="6"')}
              ${f("lg-team", "Nome della tua squadra")}${f("lg-owner", "Il tuo nome")}
@@ -761,8 +767,35 @@ function loginView() {
     <div class="foot"><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span>Statistiche e infortuni aggiornati in automatico</div>
   </div>`;
 }
+// accesso: dal codice lega mostro le squadre, basta toccare la propria
+async function loadTeamPick(code) {
+  const box = $("#team-pick"); if (!box) return;
+  code = (code || "").trim().toUpperCase();
+  if (code.length < 6) { box.innerHTML = '<span class="muted" style="font-size:.9rem">Scrivi il codice lega per vedere le squadre</span>'; $("#lg-team").value = ""; return; }
+  box.innerHTML = '<span class="muted" style="font-size:.9rem">Cerco la lega…</span>';
+  try {
+    const lg = await q(sb.from("leagues").select("id,name").eq("code", code).maybeSingle());
+    if (!lg) { box.innerHTML = '<span style="color:#ff8a80;font-size:.9rem">Codice non trovato. Controlla le lettere.</span>'; return; }
+    const teams = await q(sb.from("teams").select("name,owner_name").eq("league_id", lg.id).order("sort_order"));
+    const last = store.get("fantanba.lastteam");
+    box.innerHTML = `<div class="muted" style="font-size:.85rem;width:100%">${esc(lg.name)}</div>` + teams.map((t) =>
+      `<button type="button" class="pickbtn ${last === t.name ? "on" : ""}" data-pickteam="${esc(t.name)}"><b>${esc(t.name)}</b>${t.owner_name ? `<span>${esc(t.owner_name)}</span>` : ""}</button>`).join("");
+    if (last && teams.some((t) => t.name === last)) $("#lg-team").value = last;
+  } catch { box.innerHTML = '<input id="lg-team-free" placeholder="Nome squadra">'; }
+}
 function bindLogin() {
   startArena();
+  const codeIn = $("#lg-code");
+  if (loginMode === "accedi" && codeIn) {
+    if (!codeIn.value) codeIn.value = invitedCode || store.get("fantanba.lastcode") || "";
+    codeIn.oninput = () => { codeIn.value = codeIn.value.toUpperCase(); loadTeamPick(codeIn.value); };
+    if (codeIn.value) loadTeamPick(codeIn.value);
+    $("#team-pick").onclick = (e) => {
+      const b = e.target.closest("[data-pickteam]"); if (!b) return;
+      $("#team-pick").querySelectorAll(".pickbtn").forEach((x) => x.classList.toggle("on", x === b));
+      $("#lg-team").value = b.dataset.pickteam; $("#lg-pin")?.focus();
+    };
+  }
   $("#app").querySelectorAll("[data-mode]").forEach((b) => b.onclick = () => { loginMode = b.dataset.mode; render(); });
   if (invitedCode && $("#lg-code") && !$("#lg-code").value) $("#lg-code").value = invitedCode;
   const v = (id) => ($("#" + id)?.value || "").trim();
@@ -770,12 +803,18 @@ function bindLogin() {
     try {
       const res = await fn();
       S.sess = res; store.set("fantanba.sess", res);
+      try { store.set("fantanba.lastcode", res.code); } catch {}
       await loadLeague(); subscribe(); await loadMyStarters(); S.tab = S.league.status === "auction" ? "asta" : "oggi"; render();
       if (res.created) toast("Lega creata. Codice: " + res.code);
     } catch (e) { toast(e.message, true); }
   };
   const a = $("#app");
-  a.querySelector('[data-act="login"]')?.addEventListener("click", () => go(() => rpc("login", { p_code: v("lg-code"), p_team_name: v("lg-team"), p_pin: v("lg-pin") })));
+  a.querySelector('[data-act="login"]')?.addEventListener("click", () => {
+    const team = v("lg-team") || v("lg-team-free");
+    if (!team) return toast("Tocca la tua squadra", true);
+    store.set("fantanba.lastteam", team);
+    go(() => rpc("login", { p_code: v("lg-code"), p_team_name: team, p_pin: v("lg-pin") }));
+  });
   a.querySelector('[data-act="join"]')?.addEventListener("click", () => go(() => rpc("join_league", { p_code: v("lg-code"), p_team_name: v("lg-team"), p_owner: v("lg-owner"), p_pin: v("lg-pin") })));
   a.querySelector('[data-act="create"]')?.addEventListener("click", () => go(async () => ({ ...(await rpc("create_league", { p_name: v("lg-name"), p_mode: $("#lg-mode").value, p_team_name: v("lg-team"), p_owner: v("lg-owner"), p_pin: v("lg-pin") })), created: true })));
 }
