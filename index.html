@@ -103,6 +103,7 @@ nav.tabs .in{display:grid;grid-template-columns:repeat(5,1fr);width:100%;max-wid
 .tab[aria-current="page"]::before{content:"";position:absolute;left:22%;right:22%;top:0;height:3px;background:var(--accent);border-radius:0 0 3px 3px}
 .tab .dot{position:absolute;top:8px;right:18%;width:8px;height:8px;border-radius:50%;background:var(--loss)}
 .tab .badge{position:absolute;top:4px;right:10%;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:var(--loss);color:#fff;font:700 .7rem/18px var(--body);letter-spacing:0}
+.owner{font-weight:500;color:var(--muted);font-size:.85em}
 .injline{font-size:.8rem;color:var(--loss);margin-top:2px}
 .injline a{color:inherit;font-weight:700;display:inline-block;padding:6px 4px;margin:-6px 0}
 .prow{display:grid;grid-template-columns:auto auto 1fr auto;column-gap:8px;row-gap:6px;align-items:center;padding:12px 0;border-top:1px solid var(--line)}
@@ -298,6 +299,8 @@ const S = {
 const me = () => S.teams.find((t) => t.id === S.sess?.team_id);
 const isAdmin = () => !!me()?.is_admin;
 const R = () => S.league?.rules || {};
+const ownerOf = (id) => S.teams.find((t) => t.id === id)?.owner_name || "";
+const ownerTag = (id) => { const o = ownerOf(id); return o ? ` <span class="owner">${esc(o)}</span>` : ""; };
 const teamName = (id) => S.teams.find((t) => t.id === id)?.name || "—";
 const P = (id) => S.players.get(id) || { id, name: "Giocatore " + id, court: "", team_abbr: "" };
 
@@ -823,15 +826,15 @@ async function oggiView() {
       const pa = pts(a), pb = pts(b), mineM = a === S.sess.team_id || b === S.sess.team_id;
       const open = S.openMatch === m.id;
       return `<div class="match" data-match="${m.id}" role="button" tabindex="0" aria-expanded="${open}">
-        <div class="t"><div class="ellipsis ${a === S.sess.team_id ? "mine-name" : ""}" style="font-weight:700">${esc(teamName(a))}</div>${m.phase === "playoff" ? '<span class="chip on">Playoff</span>' : ""}</div>
+        <div class="t"><div class="ellipsis ${a === S.sess.team_id ? "mine-name" : ""}" style="font-weight:700">${esc(teamName(a))}</div><div class="owner ellipsis">${esc(ownerOf(a))}</div>${m.phase === "playoff" ? '<span class="chip on">Playoff</span>' : ""}</div>
         <div class="score"><span class="${pa > pb ? "lead" : ""}">${r1(pa)}</span> <span class="muted" style="font-size:1rem">–</span> <span class="${pb > pa ? "lead" : ""}">${r1(pb)}</span></div>
-        <div class="t r"><div class="ellipsis ${b === S.sess.team_id ? "mine-name" : ""}" style="font-weight:700">${esc(teamName(b))}</div>${mineM ? '<span class="chip">tu</span>' : ""}</div>
+        <div class="t r"><div class="ellipsis ${b === S.sess.team_id ? "mine-name" : ""}" style="font-weight:700">${esc(teamName(b))}</div><div class="owner ellipsis">${esc(ownerOf(b))}</div>${mineM ? '<span class="chip">tu</span>' : ""}</div>
       </div>${open ? `<div class="grid2" style="padding-bottom:12px">${detailBox(sc.get(a), a)}${detailBox(sc.get(b), b)}</div>` : ""}`;
     }).join("")}</div></section>`;
   } else {
     const rows = S.teams.map((t) => ({ t, p: pts(t.id) })).sort((x, y) => y.p - x.p);
     main = `<section class="card"><div class="label">Punti della giornata</div><div class="list">${rows.map((r, i) =>
-      `<div class="item" data-team-open="${r.t.id}" role="button" tabindex="0"><span class="num muted" style="width:20px">${i + 1}</span><span class="grow ellipsis ${r.t.id === S.sess.team_id ? "mine-name" : ""}" style="font-weight:700">${esc(r.t.name)}</span><span class="num" style="font-family:var(--display);font-weight:900;font-size:1.5rem">${r1(r.p)}</span></div>
+      `<div class="item" data-team-open="${r.t.id}" role="button" tabindex="0"><span class="num muted" style="width:20px">${i + 1}</span><span class="grow ellipsis ${r.t.id === S.sess.team_id ? "mine-name" : ""}" style="font-weight:700">${esc(r.t.name)}${ownerTag(r.t.id)}</span><span class="num" style="font-family:var(--display);font-weight:900;font-size:1.5rem">${r1(r.p)}</span></div>
       ${S.openMatch === r.t.id ? detailBox(sc.get(r.t.id), r.t.id) : ""}`).join("")}</div>
       ${S.league.mode === "h2h" ? '<p class="muted">Nessuna sfida in calendario per questa giornata. L\'admin può generare il calendario in Lega.</p>' : ""}</section>`;
   }
@@ -966,7 +969,7 @@ function astaView() {
   }
   const teamsBox = `<section class="card"><div class="label">Squadre</div><div class="scroll"><table><thead><tr><th>Squadra</th><th>Crediti</th><th>Rosa</th><th>BC</th><th>FC</th><th>Max</th></tr></thead><tbody>${S.teams.map((t) => {
     const r = rosterOf(t.id).map((x) => P(x.player_id));
-    return `<tr><td class="team ${t.id === S.sess.team_id ? "mine-name" : ""}" style="font-weight:700">${esc(t.name)}${a.next_team_id === t.id && a.status !== "open" ? ' <span class="chip on">turno</span>' : ""}</td><td>${credits(t.id)}</td><td>${r.length}/${ro.size}</td><td>${r.filter((p) => p.court === "BC").length}/${ro.bc}</td><td>${r.filter((p) => p.court === "FC").length}/${ro.fc}</td><td>${Math.max(0, maxBid(t.id))}</td></tr>`;
+    return `<tr><td class="team ${t.id === S.sess.team_id ? "mine-name" : ""}" style="font-weight:700">${esc(t.name)}${ownerTag(t.id)}${a.next_team_id === t.id && a.status !== "open" ? ' <span class="chip on">turno</span>' : ""}</td><td>${credits(t.id)}</td><td>${r.length}/${ro.size}</td><td>${r.filter((p) => p.court === "BC").length}/${ro.bc}</td><td>${r.filter((p) => p.court === "FC").length}/${ro.fc}</td><td>${Math.max(0, maxBid(t.id))}</td></tr>`;
   }).join("")}</tbody></table></div></section>`;
   return head("Asta") + `<div class="stack">${board}${teamsBox}${myRosterBox()}</div>`;
 }
@@ -1073,12 +1076,12 @@ async function classificaView() {
   }
   return head("Classifica", h2h ? `Vittorie e sconfitte nelle sfide quotidiane · i primi ${k} ai playoff` : "Punti totali della stagione") + `<div class="stack">
     <section class="card scroll"><table><thead><tr><th>#</th><th style="text-align:left">Squadra</th>${h2h ? "<th>V</th><th>S</th><th>%</th><th>Fatti</th><th>Subiti</th>" : "<th>Punti</th>"}</tr></thead><tbody>
-    ${rows.map((r, i) => { const g = r.wins + r.losses + r.ties; return `<tr class="${h2h && i === k ? "cut" : ""}"><td class="muted">${i + 1}</td><td class="team ${r.team_id === S.sess.team_id ? "mine-name" : ""}" style="text-align:left;font-weight:700">${esc(r.name)}</td>${h2h ? `<td>${r.wins}</td><td>${r.losses}</td><td>${g ? (r.wins / g).toFixed(3).replace(/^0/, "") : "—"}</td><td>${r1(r.total_points)}</td><td>${r1(r.points_against)}</td>` : `<td><b>${r1(r.total_points)}</b></td>`}</tr>`; }).join("")}
+    ${rows.map((r, i) => { const g = r.wins + r.losses + r.ties; return `<tr class="${h2h && i === k ? "cut" : ""}"><td class="muted">${i + 1}</td><td class="team ${r.team_id === S.sess.team_id ? "mine-name" : ""}" style="text-align:left;font-weight:700">${esc(r.name)}${r.owner_name ? ` <span class="owner">${esc(r.owner_name)}</span>` : ""}</td>${h2h ? `<td>${r.wins}</td><td>${r.losses}</td><td>${g ? (r.wins / g).toFixed(3).replace(/^0/, "") : "—"}</td><td>${r1(r.total_points)}</td><td>${r1(r.points_against)}</td>` : `<td><b>${r1(r.total_points)}</b></td>`}</tr>`; }).join("")}
     </tbody></table></section>
     ${bracket}
     <section class="card"><div class="label">Rose</div>${S.teams.map((t) => {
       const r = rosterOf(t.id).map((x) => ({ ...P(x.player_id), price: x.price })).sort((a, b) => (a.court > b.court ? 1 : -1) || b.price - a.price);
-      return `<details style="border-top:1px solid var(--line);padding:10px 0"><summary class="row between"><b class="${t.id === S.sess.team_id ? "mine-name" : ""}">${esc(t.name)}</b><span class="muted num">${r.length} giocatori · ${credits(t.id)} crediti</span></summary>
+      return `<details style="border-top:1px solid var(--line);padding:10px 0"><summary class="row between"><b class="${t.id === S.sess.team_id ? "mine-name" : ""}">${esc(t.name)}${ownerTag(t.id)}</b><span class="muted num">${r.length} giocatori · ${credits(t.id)} crediti</span></summary>
       <div class="list" style="margin-top:6px">${r.map((p) => `<div class="item">${courtChip(p)}<span class="grow" style="min-width:0">${esc(p.name)} <span class="muted">${esc(p.team_abbr || "")}</span> ${injChip(p)}</span><span class="num muted">${p.price}</span></div>`).join("") || '<div class="muted">Vuota</div>'}</div></details>`;
     }).join("")}</section>
   </div>`;
