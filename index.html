@@ -86,8 +86,8 @@ header.top{display:flex;align-items:flex-end;justify-content:space-between;gap:1
 nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:20;background:var(--surface);border-top:1px solid var(--line);
   display:flex;justify-content:center;padding-bottom:env(safe-area-inset-bottom,0px);
   padding-left:env(safe-area-inset-left,0px);padding-right:env(safe-area-inset-right,0px)}
-nav.tabs .in{display:grid;grid-template-columns:repeat(6,1fr);width:100%;max-width:720px}
-.tab{background:none;border:0;padding:10px 2px 9px;font-family:var(--display);font-weight:800;font-size:.92rem;letter-spacing:.02em;color:var(--muted);cursor:pointer;text-transform:uppercase;position:relative}
+nav.tabs .in{display:grid;grid-template-columns:repeat(5,1fr);width:100%;max-width:720px}
+.tab{background:none;border:0;padding:10px 2px 9px;font-family:var(--display);font-weight:800;font-size:1rem;letter-spacing:.03em;color:var(--muted);cursor:pointer;text-transform:uppercase;position:relative}
 .tab[aria-current="page"]{color:var(--ink)}
 .tab[aria-current="page"]::before{content:"";position:absolute;left:22%;right:22%;top:0;height:3px;background:var(--accent);border-radius:0 0 3px 3px}
 .tab .dot{position:absolute;top:8px;right:18%;width:8px;height:8px;border-radius:50%;background:var(--loss)}
@@ -139,6 +139,23 @@ details>summary::-webkit-details-marker{display:none}
 .login-hero h1{font-size:3.4rem;font-weight:900}
 .login-hero h1 b{color:var(--accent)}
 .feed{font-size:.88rem;max-height:160px;overflow:auto}
+
+/* regole */
+.rgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(98px,1fr));gap:8px}
+.tile{background:var(--surface2);border-radius:8px;padding:10px 8px;text-align:center;min-width:0}
+.tile .n{font-family:var(--display);font-weight:900;font-size:1.9rem;line-height:1}
+.tile .t{font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600;margin-top:4px}
+.tile.pos .n{color:var(--win)} .tile.neg .n{color:var(--loss)}
+.slots{display:flex;gap:8px;flex-wrap:wrap}
+.slot{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;font-weight:800;font-size:.78rem;border:2px solid var(--line);color:var(--muted)}
+.slot.bc{border-color:var(--mine);color:var(--mine)} .slot.fc{border-color:var(--accent);color:var(--accent)} .slot.any{border-style:dashed}
+.flow{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.flow .step{background:var(--surface2);border-radius:99px;padding:6px 12px;font-weight:700;font-size:.88rem}
+.flow .step.on{background:var(--accent);color:var(--accent-ink)}
+.flow .arr{color:var(--muted);font-weight:700}
+.mode{border:2px solid var(--line);border-radius:10px;padding:12px;min-width:0}
+.mode.on{border-color:var(--accent)}
+.court{background:var(--surface2);border-radius:10px;padding:14px}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 @keyframes pop{0%{transform:scale(1.12)}100%{transform:scale(1)}}
 .pop{animation:pop .35s ease-out}
@@ -150,7 +167,6 @@ details>summary::-webkit-details-marker{display:none}
   <button class="tab" data-tab="oggi">Oggi</button>
   <button class="tab" data-tab="formazione">Quintetto</button>
   <button class="tab" data-tab="asta">Asta</button>
-  <button class="tab" data-tab="mercato">Mercato</button>
   <button class="tab" data-tab="classifica">Classifica</button>
   <button class="tab" data-tab="lega">Lega</button>
 </div></nav>
@@ -192,7 +208,7 @@ const now = () => Date.now() + clockOffset;
 /* ---------- stato ---------- */
 const S = {
   sess: store.get("fantanba.sess"),
-  tab: store.get("fantanba.tab") || "oggi",
+  tab: ({ mercato: "asta" })[store.get("fantanba.tab")] || store.get("fantanba.tab") || "oggi",
   league: null, teams: [], roster: [], auction: null, bids: [], standings: [],
   players: new Map(), last: new Map(), cur: new Map(), values: new Map(),
   mk: { give: [], get: [], tradeTo: "", givec: 0, getc: 0, msg: "", fa: null, faAmt: "", faDrop: "", rel: null, newTrade: false, faSearch: "", faCourt: "", faBand: "", faPage: 0 },
@@ -298,22 +314,24 @@ function subscribe() {
     .on("postgres_changes", { event: "*", schema: "public", table: "roster", filter: f }, () => soon(async () => { S.roster = await q(sb.from("roster").select("*").eq("league_id", id).not("team_id", "is", null)); render(); }))
     .on("postgres_changes", { event: "*", schema: "public", table: "teams", filter: f }, () => soon(async () => { await loadLeague(); render(); }))
     .on("postgres_changes", { event: "UPDATE", schema: "public", table: "leagues", filter: `id=eq.${id}` }, () => soon(async () => { await loadLeague(); render(); }))
-    .on("postgres_changes", { event: "*", schema: "public", table: "trades", filter: f }, (p) => { if (p.new?.to_team === S.sess.team_id && p.new.status === "pending") toast("Nuova proposta di scambio da " + teamName(p.new.from_team)); soon(() => { if (S.tab === "mercato") render(); else renderTabs(); }); })
-    .on("postgres_changes", { event: "*", schema: "public", table: "transactions", filter: f }, () => soon(async () => { if (S.tab === "mercato") render(); }))
-    .on("postgres_changes", { event: "*", schema: "public", table: "market_windows", filter: f }, () => soon(async () => { if (S.tab === "mercato") render(); }))
-    .on("postgres_changes", { event: "*", schema: "public", table: "player_values", filter: f }, () => soon(async () => { const v = await q(sb.from("player_values").select("player_id,value,fp").eq("league_id", id).limit(2000)); S.values = new Map(v.map((x) => [x.player_id, x])); if (S.tab === "mercato") render(); }))
+    .on("postgres_changes", { event: "*", schema: "public", table: "trades", filter: f }, (p) => { if (p.new?.to_team === S.sess.team_id && p.new.status === "pending") toast("Nuova proposta di scambio da " + teamName(p.new.from_team)); soon(() => { if (S.tab === "asta") render(); else renderTabs(); }); })
+    .on("postgres_changes", { event: "*", schema: "public", table: "transactions", filter: f }, () => soon(async () => { if (S.tab === "asta") render(); }))
+    .on("postgres_changes", { event: "*", schema: "public", table: "market_windows", filter: f }, () => soon(async () => { if (S.tab === "asta") render(); }))
+    .on("postgres_changes", { event: "*", schema: "public", table: "player_values", filter: f }, () => soon(async () => { const v = await q(sb.from("player_values").select("player_id,value,fp").eq("league_id", id).limit(2000)); S.values = new Map(v.map((x) => [x.player_id, x])); if (S.tab === "asta") render(); }))
     .on("postgres_changes", { event: "*", schema: "public", table: "team_scores", filter: f }, () => soon(async () => { S.standings = await q(sb.from("standings").select("*").eq("league_id", id)); if (S.tab === "oggi" || S.tab === "classifica") render(); }))
     .subscribe();
 }
 
 /* ---------- navigazione ---------- */
+const isTrade = () => ["season", "finished"].includes(S.league?.status);
 function renderTabs() {
   const nav = $("#tabs"); nav.hidden = !S.league;
+  const at = nav.querySelector('[data-tab="asta"]'); if (at) at.firstChild.textContent = isTrade() ? "Trade" : "Asta";
   nav.querySelectorAll(".tab").forEach((b) => {
     b.toggleAttribute("aria-current", b.dataset.tab === S.tab);
     if (b.dataset.tab === S.tab) b.setAttribute("aria-current", "page");
     b.querySelector(".dot")?.remove();
-    if (b.dataset.tab === "asta" && S.auction?.status === "open" && S.tab !== "asta") b.insertAdjacentHTML("beforeend", '<span class="dot"></span>');
+    if (b.dataset.tab === "asta" && !isTrade() && S.auction?.status === "open" && S.tab !== "asta") b.insertAdjacentHTML("beforeend", '<span class="dot"></span>');
   });
 }
 $("#tabs").addEventListener("click", (e) => {
@@ -323,7 +341,7 @@ $("#tabs").addEventListener("click", (e) => {
 
 function head(title, sub) {
   return `<header class="top"><div><div class="brand">FANTA<b>NBA</b></div>${sub ? `<div class="muted" style="margin-top:4px">${sub}</div>` : ""}</div>
-  <div style="text-align:right;max-width:45%;min-width:0"><div class="label ellipsis">${esc(S.league?.name || "")}</div><div class="mine-name" style="font-weight:700">${esc(me()?.name || "")}</div></div></header>
+  <div style="text-align:right;max-width:45%;min-width:0;display:flex;flex-direction:column;align-items:flex-end;gap:4px"><div class="label ellipsis" style="max-width:100%">${esc(S.league?.name || "")}</div><div class="mine-name ellipsis" style="font-weight:700;max-width:100%">${esc(me()?.name || "")}</div>${S.tab !== "regole" ? `<button class="btn small" data-act="rules">Regole</button>` : ""}</div></header>
   <h1 style="margin-bottom:12px">${title}</h1>`;
 }
 
@@ -338,9 +356,9 @@ async function render() {
   try {
     if (S.tab === "oggi") html = await oggiView();
     else if (S.tab === "formazione") html = await formazioneView();
-    else if (S.tab === "asta") html = astaView();
+    else if (S.tab === "asta") html = isTrade() ? await tradeView() : astaView();
+    else if (S.tab === "regole") html = regoleView();
     else if (S.tab === "classifica") html = await classificaView();
-    else if (S.tab === "mercato") html = await mercatoView();
     else html = legaView();
   } catch (e) { html = head("Ops") + `<section class="card">${esc(e.message)}</section>`; }
   if (ticket !== render.seq) return;
@@ -681,7 +699,7 @@ function txText(t) {
     default: return esc(t.kind);
   }
 }
-async function mercatoView() {
+async function tradeView() {
   const lid = S.sess.league_id, my = S.sess.team_id, M = S.mk, ro = R().roster || {};
   const [wins, trades, tx, myBids] = await Promise.all([
     q(sb.from("market_windows").select("*").eq("league_id", lid).neq("status", "cancelled").order("opens_at", { ascending: false }).limit(10)),
@@ -717,7 +735,7 @@ async function mercatoView() {
   const theirs = M.tradeTo ? rosterOf(M.tradeTo).map((r) => P(r.player_id)) : [];
   const pick = (list, side) => list.map((p) => `<button class="btn small ${M[side].includes(p.id) ? "primary" : ""}" data-tg="${side}" data-id="${p.id}">${courtChip(p)} ${esc(p.name)} <span class="muted num">${val(p.id)}</span></button>`).join("");
   const sumv = (ids) => ids.reduce((a, id) => a + val(id), 0);
-  const builder = M.newTrade ? `<div class="stack" style="border-top:1px solid var(--line);padding-top:12px">
+  const builder = M.newTrade ? `<div class="stack" id="trade-builder" style="border-top:1px solid var(--line);padding-top:12px">
       <label class="field"><span class="label">Con chi</span><select id="tr-team"><option value="">Scegli squadra</option>${others.map((x) => `<option value="${x.id}" ${x.id === M.tradeTo ? "selected" : ""}>${esc(x.name)}</option>`).join("")}</select></label>
       <div><div class="label" style="margin-bottom:6px">Dai (almeno 1)</div><div class="row">${pick(mine, "give") || '<span class="muted">Rosa vuota</span>'}</div></div>
       ${M.tradeTo ? `<div><div class="label" style="margin-bottom:6px">Ricevi (almeno 1)</div><div class="row">${pick(theirs, "get") || '<span class="muted">Rosa vuota</span>'}</div></div>` : ""}
@@ -750,38 +768,81 @@ async function mercatoView() {
     <span class="chip ${b.status === "won" ? "win" : b.status === "active" ? "" : "inj"}">${stLbl[b.status] || b.status}</span>
     ${b.status === "active" && open ? `<button class="btn small" data-act="fa-edit" data-pid="${b.player_id}" data-amt="${b.amount}" data-drop="${b.drop_player_id || ""}">Modifica</button><button class="btn small danger" data-act="fa-withdraw" data-wd="${b.id}">Ritira</button>` : ""}</div>`).join("")}</div></section>` : "";
 
-  // free agent
-  let faBox = "";
-  if (open) {
-    const taken = new Set(S.roster.map((r) => r.player_id)), qs = M.faSearch.toLowerCase();
-    let list = [...S.players.values()].filter((p) => p.active && p.team_abbr && !taken.has(p.id));
-    if (M.faCourt) list = list.filter((p) => p.court === M.faCourt);
-    if (qs) list = list.filter((p) => p.name.toLowerCase().includes(qs) || (p.team_abbr || "").toLowerCase() === qs);
-    list = inBand(list, M.faBand);
-    list.sort((a, b) => val(b.id) - val(a.id) || estFp(b.id) - estFp(a.id));
-    const pages = Math.max(1, Math.ceil(list.length / PER_PAGE)); if (M.faPage >= pages) M.faPage = pages - 1;
-    faBox = `<section class="card stack"><div class="label">Free agent · offerta minima = quotazione</div>
-      <div class="row"><input id="fa-search" class="grow" style="width:auto" placeholder="Cerca giocatore o squadra" value="${esc(M.faSearch)}">
-      <div class="seg"><button class="${!M.faCourt ? "on" : ""}" data-fac="">Tutti</button><button class="${M.faCourt === "BC" ? "on" : ""}" data-fac="BC">BC</button><button class="${M.faCourt === "FC" ? "on" : ""}" data-fac="FC">FC</button></div></div>
-      ${bandBar(M.faBand, "faband")}
-      ${pager(list.length, M.faPage, "fapage")}
-      <div class="list" id="fa-list">${pageOf(list, M.faPage).map((p) => {
-        const v = val(p.id), isOpen = M.fa === p.id;
-        return `<div class="item" style="flex-wrap:wrap">${avatar(p)}<div class="grow" style="min-width:0"><div class="ellipsis" style="font-weight:700">${esc(p.name)}</div>
-          <div class="row" style="gap:6px">${courtChip(p)}<span class="muted" style="font-size:.85rem">${esc(p.team_abbr)} · media ${r1(estFp(p.id))} pt</span>${injChip(p)}</div></div>
-          <div style="text-align:right"><div class="label">Quot.</div><div class="num" style="font-family:var(--display);font-weight:900;font-size:1.35rem">${v}</div></div>
-          ${isOpen ? `<div class="stack" style="width:100%">
-            <div class="grid2"><label class="field"><span class="muted" style="font-size:.85rem">La tua offerta (min ${v})</span><input id="fa-amt" type="number" min="${v}" value="${M.faAmt || v}"></label>
-            <label class="field"><span class="muted" style="font-size:.85rem">Se vinci rilasci ${full ? "(obbligatorio)" : "(facoltativo)"}</span><select id="fa-drop"><option value="">${full ? "Scegli…" : "Nessuno"}</option>${mine.map((m) => `<option value="${m.id}" ${M.faDrop === m.id ? "selected" : ""}>${esc(m.name)} (+${refundOf(m.id)})</option>`).join("")}</select></label></div>
-            <div class="row"><button class="btn primary" data-act="fa-send" data-pid="${p.id}">Metti in busta</button><button class="btn" data-act="fa-close">Annulla</button></div>
-            <span class="muted" style="font-size:.85rem">Nessuno vede la tua offerta. Puoi cambiarla fino alla chiusura.</span></div>` : `<button class="btn small primary" data-act="fa-open" data-pid="${p.id}">Offerta</button>`}</div>`;
-      }).join("") || '<div class="empty">Nessun free agent trovato</div>'}</div>
-      ${pager(list.length, M.faPage, "fapage")}</section>`;
-  }
+  // giocatori: free agent oppure delle altre squadre
+  const pool = M.pool || "fa";
+  const ownerOf = new Map(S.roster.map((r) => [r.player_id, r]));
+  const qs = M.faSearch.toLowerCase();
+  let list = [...S.players.values()].filter((p) => p.active && p.team_abbr);
+  list = pool === "fa" ? list.filter((p) => !ownerOf.has(p.id)) : list.filter((p) => ownerOf.has(p.id) && ownerOf.get(p.id).team_id !== my);
+  if (M.faCourt) list = list.filter((p) => p.court === M.faCourt);
+  if (qs) list = list.filter((p) => p.name.toLowerCase().includes(qs) || (p.team_abbr || "").toLowerCase() === qs || (pool === "teams" && teamName(ownerOf.get(p.id).team_id).toLowerCase().includes(qs)));
+  list = inBand(list, M.faBand);
+  list.sort((a, b) => val(b.id) - val(a.id) || estFp(b.id) - estFp(a.id));
+  const pages = Math.max(1, Math.ceil(list.length / PER_PAGE)); if (M.faPage >= pages) M.faPage = pages - 1;
+  const faBox = `<section class="card stack">
+    <div class="seg" style="align-self:flex-start"><button class="${pool === "fa" ? "on" : ""}" data-pool="fa">Free agent</button><button class="${pool === "teams" ? "on" : ""}" data-pool="teams">Altre squadre</button></div>
+    <div class="muted" style="font-size:.85rem">${pool === "fa" ? (open ? "Offerta segreta · minimo = quotazione" : "Offerte solo a mercato aperto") : "Proponi uno scambio quando vuoi"}</div>
+    <div class="row"><input id="fa-search" class="grow" style="width:auto" placeholder="${pool === "fa" ? "Cerca giocatore o squadra NBA" : "Cerca giocatore o squadra"}" value="${esc(M.faSearch)}">
+    <div class="seg"><button class="${!M.faCourt ? "on" : ""}" data-fac="">Tutti</button><button class="${M.faCourt === "BC" ? "on" : ""}" data-fac="BC">BC</button><button class="${M.faCourt === "FC" ? "on" : ""}" data-fac="FC">FC</button></div></div>
+    ${bandBar(M.faBand, "faband")}
+    ${pager(list.length, M.faPage, "fapage")}
+    <div class="list" id="fa-list">${pageOf(list, M.faPage).map((p) => {
+      const v = val(p.id), isOpen = M.fa === p.id, own = ownerOf.get(p.id);
+      const action = pool === "teams"
+        ? `<button class="btn small primary" data-act="trade-for" data-pid="${p.id}" data-team="${own.team_id}">Proponi scambio</button>`
+        : open ? (isOpen ? "" : `<button class="btn small primary" data-act="fa-open" data-pid="${p.id}">Offerta</button>`) : `<span class="chip">mercato chiuso</span>`;
+      return `<div class="item" style="flex-wrap:wrap">${avatar(p)}<div class="grow" style="min-width:0"><div class="ellipsis" style="font-weight:700">${esc(p.name)}</div>
+        <div class="row" style="gap:6px">${courtChip(p)}<span class="muted" style="font-size:.85rem">${esc(p.team_abbr)} · ${r1(estFp(p.id))} pt/gara</span>${injChip(p)}${own ? `<span class="chip">${esc(teamName(own.team_id))}</span>` : ""}</div></div>
+        <div style="text-align:right"><div class="label">Quot.</div><div class="num" style="font-family:var(--display);font-weight:900;font-size:1.35rem;line-height:1.1">${v}</div>${action}</div>
+        ${isOpen && pool === "fa" && open ? `<div class="stack" style="width:100%">
+          <div class="grid2"><label class="field"><span class="muted" style="font-size:.85rem">La tua offerta (min ${v})</span><input id="fa-amt" type="number" min="${v}" value="${M.faAmt || v}"></label>
+          <label class="field"><span class="muted" style="font-size:.85rem">Se vinci rilasci ${full ? "(obbligatorio)" : "(facoltativo)"}</span><select id="fa-drop"><option value="">${full ? "Scegli…" : "Nessuno"}</option>${mine.map((m) => `<option value="${m.id}" ${M.faDrop === m.id ? "selected" : ""}>${esc(m.name)} (+${refundOf(m.id)})</option>`).join("")}</select></label></div>
+          <div class="row"><button class="btn primary" data-act="fa-send" data-pid="${p.id}">Metti in busta</button><button class="btn" data-act="fa-close">Annulla</button></div>
+          <span class="muted" style="font-size:.85rem">Nessuno vede la tua offerta. Puoi cambiarla fino alla chiusura.</span></div>` : ""}</div>`;
+    }).join("") || `<div class="empty">Nessun giocatore trovato</div>`}</div>
+    ${pager(list.length, M.faPage, "fapage")}</section>`;
 
   const txBox = `<section class="card"><div class="label">Movimenti della lega</div><div class="list">${tx.map((x) => `<div class="item" style="display:block"><div>${txText(x)}</div><div class="muted" style="font-size:.8rem">${fmtDT(x.created_at)}</div></div>`).join("") || '<div class="empty">Ancora nessun movimento</div>'}</div></section>`;
 
-  return head("Mercato", `Crediti: ${credits(my)} · rosa ${mine.length}/${ro.size}`) + `<div class="stack">${winBox}${tradesBox}${bidsBox}${faBox}${rosaBox}${txBox}</div>`;
+  return head("Trade", `Crediti: ${credits(my)} · rosa ${mine.length}/${ro.size}`) + `<div class="stack">${winBox}${tradesBox}${bidsBox}${faBox}${rosaBox}${txBox}</div>`;
+}
+
+/* ---------- REGOLE (grafiche, i numeri arrivano dalle regole della lega) ---------- */
+function regoleView() {
+  const r = R(), ro = r.roster || {}, au = r.auction || {}, cap = r.captain || {}, mk = r.market || {}, po = r.playoffs || {}, sc = r.scoring || {}, bo = r.bonus || {};
+  const h2h = S.league.mode === "h2h";
+  const sign = (v) => (v > 0 ? "+" : v < 0 ? "−" : "") + r1(Math.abs(v));
+  const tile = (n, t, cls = "") => `<div class="tile ${cls}"><div class="n num">${n}</div><div class="t">${t}</div></div>`;
+  const sec = (title, body) => `<section class="card stack"><h2>${title}</h2>${body}</section>`;
+  const slots = (n, cls, txt) => Array.from({ length: n }, () => `<span class="slot ${cls}">${txt}</span>`).join("");
+  const STAT = [["pts", "punto"], ["reb", "rimbalzo"], ["ast", "assist"], ["stl", "rubata"], ["blk", "stoppata"], ["tov", "persa"], ["fg3m", "tripla"], ["fg_miss", "tiro sbagliato"], ["ft_miss", "libero sbagliato"], ["pf", "fallo"]];
+  const ex = { pts: 24, reb: 7, ast: 4, stl: 0, blk: 1, tov: 1 };
+  const exParts = Object.entries(ex).filter(([k, n]) => n && +sc[k]);
+  const exTot = exParts.reduce((a, [k, n]) => a + n * +sc[k], 0);
+  const mode = (on, title, tiles) => `<div class="mode ${on ? "on" : ""}">${on ? '<span class="chip on">La nostra lega</span>' : ""}<h3 style="margin:6px 0 8px">${title}</h3><div class="rgrid">${tiles}</div></div>`;
+  return `<header class="top"><button class="btn small" data-act="rules-back">‹ Indietro</button><div class="label">${esc(S.league.name)}</div></header>
+  <h1 style="margin-bottom:12px">Regole</h1>
+  <div class="stack">
+    ${sec("Come si vince", `<div class="grid2" style="grid-template-columns:repeat(auto-fit,minmax(240px,1fr))">
+      ${mode(h2h, "Sfide ogni sera", tile("1 vs 1", "ogni sera NBA") + tile("V–S", "record") + tile("Top " + (po.teams || 4), "ai playoff") + tile(po.days_per_round || 7, "serate per turno"))}
+      ${mode(!h2h, "Punti totali", tile("Σ", "somma punti") + tile("1", "classifica"))}</div>`)}
+    ${sec("La rosa", `<div class="slots">${slots(+ro.bc || 5, "bc", "BC")}${slots(+ro.fc || 5, "fc", "FC")}</div>
+      <div class="row"><span class="chip bc">BC = guardie</span><span class="chip fc">FC = ali e centri</span></div>
+      <div class="rgrid">${tile(r.credits, "crediti")}${tile(ro.size, "giocatori")}${tile("max " + ro.max_per_nba_team, "per squadra NBA")}</div>`)}
+    ${sec("L'asta", `<div class="flow"><span class="step">Chiami${au.turn_order ? " a turno" : ""}</span><span class="arr">→</span><span class="step">Rilanci +${au.min_increment}</span><span class="arr">→</span><span class="step">${au.timer_seconds} sec</span><span class="arr">→</span><span class="step on">Vince il più alto</span></div>
+      <div class="rgrid">${tile(au.base_price, "prezzo base")}${tile("+" + au.reset_seconds + "s", "dopo ogni rilancio")}</div>`)}
+    ${sec("Quintetto ogni sera", `<div class="court"><div class="slots" style="justify-content:center">${slots(+ro.min_bc_start || 2, "bc", "BC")}${slots(+ro.min_fc_start || 2, "fc", "FC")}${slots(Math.max(0, (+ro.starters || 5) - (+ro.min_bc_start || 2) - (+ro.min_fc_start || 2)), "any", "?")}</div>
+      <div class="muted" style="text-align:center;font-size:.8rem;margin-top:6px">${ro.starters} titolari · almeno ${ro.min_bc_start} BC e ${ro.min_fc_start} FC</div></div>
+      <div class="rgrid">${cap.enabled ? tile("★ ×" + cap.multiplier, "capitano") + tile(cap.per_week, "a settimana") : ""}${tile("1ª", "partita della sera: si chiude")}${tile("Pan", "entra se un titolare non gioca")}</div>`)}
+    ${sec("Punti", `<div class="rgrid">${STAT.filter(([k]) => +sc[k]).map(([k, l]) => tile(sign(+sc[k]), l, +sc[k] > 0 ? "pos" : "neg")).join("")}
+      ${+bo.double_double ? tile(sign(+bo.double_double), "doppia doppia", "pos") : ""}${+bo.triple_double ? tile(sign(+bo.triple_double), "tripla doppia", "pos") : ""}</div>
+      <div class="flow" style="font-size:.85rem"><span class="label">Esempio</span>${exParts.map(([k, n]) => `<span class="step">${n} ${n > 1 ? ({ pts: "punti", reb: "rimbalzi", ast: "assist", stl: "rubate", blk: "stoppate", tov: "perse" })[k] : STAT.find((x) => x[0] === k)[1]} ${sign(n * +sc[k])}</span>`).join("")}<span class="arr">=</span><span class="step on num">${r1(exTot)}</span></div>`)}
+    ${sec("Mercato", `<div class="grid2" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr))">
+      <div class="mode"><h3 style="margin-bottom:8px">Quotazione</h3><div class="rgrid">${tile("ogni", "mattina")}${tile("−" + (mk.injury_out_discount ?? 50) + "%", "se Out", "neg")}</div></div>
+      <div class="mode"><h3 style="margin-bottom:8px">Finestre</h3><div class="rgrid">${tile((mk.release_pct ?? 90) + "%", "rilascio")}${tile("busta", "segreta")}</div><div class="muted" style="font-size:.8rem;margin-top:6px">Vince l'offerta più alta</div></div>
+      <div class="mode"><h3 style="margin-bottom:8px">Scambi</h3><div class="rgrid">${tile("sempre", "aperti")}${tile("≥1", "giocatore a testa")}${tile("+cr", "facoltativi")}</div><div class="muted" style="font-size:.8rem;margin-top:6px">Fatto quando l'altro accetta</div></div>
+    </div>`)}
+  </div>`;
 }
 
 /* ---------- LEGA ---------- */
@@ -860,12 +921,16 @@ function bindCommon() {
       if (d.adj) { await rpc("admin_team", { p_token: tok, p_team: d.adj, p_action: "credit_adjust", p_value: { value: +$("#adj-" + d.adj).value || 0 } }); toast("Crediti aggiornati"); return; }
       if (d.tg) { const M = S.mk, arr = M[d.tg]; const i = arr.indexOf(d.id); i >= 0 ? arr.splice(i, 1) : arr.push(d.id); return render(); }
       if (d.fac !== undefined) { S.mk.faCourt = d.fac; S.mk.faPage = 0; return render(); }
+      if (d.pool) { Object.assign(S.mk, { pool: d.pool, faPage: 0, fa: null }); return render(); }
       if (d.band !== undefined) { S.band = d.band; S.page = 0; return render(); }
       if (d.faband !== undefined) { S.mk.faBand = d.faband; S.mk.faPage = 0; return render(); }
       if (d.page !== undefined) { S.page = +d.page; await render(); return $("#pl-list")?.scrollIntoView({ block: "start" }); }
       if (d.fapage !== undefined) { S.mk.faPage = +d.fapage; await render(); return $("#fa-list")?.scrollIntoView({ block: "start" }); }
       switch (d.act) {
         case "new-trade": S.mk.newTrade = !S.mk.newTrade; return render();
+        case "trade-for": { Object.assign(S.mk, { newTrade: true, tradeTo: d.team, get: [d.pid], give: [] }); await render(); return $("#trade-builder")?.scrollIntoView({ block: "start", behavior: "smooth" }); }
+        case "rules": S.prevTab = S.tab; S.tab = "regole"; render(); return window.scrollTo(0, 0);
+        case "rules-back": S.tab = S.prevTab || "oggi"; render(); return window.scrollTo(0, 0);
         case "send-trade": {
           const M = S.mk;
           await rpc("propose_trade", { p_token: tok, p_to: M.tradeTo, p_give: M.give, p_get: M.get, p_give_credits: +M.givec || 0, p_get_credits: +M.getc || 0, p_message: M.msg });
