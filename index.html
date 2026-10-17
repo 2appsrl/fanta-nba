@@ -154,8 +154,8 @@ details>summary::-webkit-details-marker{display:none}
 .slots{display:flex;gap:8px;flex-wrap:wrap}
 .slot{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;font-weight:800;font-size:.78rem;border:2px solid var(--line);color:var(--muted)}
 .slot.bc{border-color:var(--mine);color:var(--mine)} .slot.fc{border-color:var(--accent);color:var(--accent)} .slot.any{border-style:dashed}
-.slots.sm{gap:5px;flex-wrap:nowrap} .slots.sm .slot{width:28px;height:28px;font-size:.7rem;border-width:2px;flex:none}
-.slot.empty{border-style:dashed;opacity:.6} .slot.bc.full{background:var(--mine);color:var(--surface)} .slot.fc.full{background:var(--accent);color:var(--accent-ink)}
+.slots.sm{gap:5px;flex-wrap:nowrap} .slots.sm .slot{width:28px!important;height:28px!important;min-height:0;font-size:.7rem;border-width:2px;flex:none}
+.slot.vacant{border-style:dashed;opacity:.6} .slot.bc.full{background:var(--mine);color:var(--surface)} .slot.fc.full{background:var(--accent);color:var(--accent-ink)}
 .flow{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
 .flow .step{background:var(--surface2);border-radius:99px;padding:6px 12px;font-weight:700;font-size:.88rem}
 .flow .step.on{background:var(--accent);color:var(--accent-ink)}
@@ -705,7 +705,7 @@ function rosterNeedBox() {
   const row = (c, label) => {
     const cap = +ro[c.toLowerCase()] || 5, have = mine.filter((p) => p.court === c).length, miss = Math.max(0, cap - have);
     return `<div class="row" style="gap:10px;align-items:center;flex-wrap:nowrap"><div style="width:72px;flex:none"><span class="chip ${c.toLowerCase()}">${c}</span><div class="muted" style="font-size:.75rem;margin-top:2px">${label}</div></div>
-      <div class="slots sm" style="flex:1;min-width:0">${Array.from({ length: cap }, (_, i) => `<span class="slot ${c.toLowerCase()} ${i < have ? "full" : "empty"}">${i < have ? "✓" : ""}</span>`).join("")}</div>
+      <div class="slots sm" style="flex:1;min-width:0">${Array.from({ length: cap }, (_, i) => `<span class="slot ${c.toLowerCase()} ${i < have ? "full" : "vacant"}">${i < have ? "✓" : ""}</span>`).join("")}</div>
       <div style="text-align:right;flex:none"><div class="num" style="font-family:var(--display);font-weight:900;font-size:1.5rem;line-height:1">${have}/${cap}</div><div style="font-size:.75rem;font-weight:700;color:${miss ? "var(--accent)" : "var(--win)"}">${miss ? "mancano " + miss : "completo"}</div></div></div>`;
   };
   return `<section class="card stack" style="gap:10px"><div class="row between"><div class="label">La tua rosa</div><div class="muted num" style="font-size:.85rem">${credits(S.sess.team_id)} crediti · max offerta ${Math.max(0, maxBid(S.sess.team_id))}</div></div>
