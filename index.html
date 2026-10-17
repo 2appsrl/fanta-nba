@@ -15,7 +15,7 @@
 <meta name="apple-mobile-web-app-title" content="Fanta NBA">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Big+Shoulders+Display:wght@700;800;900&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Big+Shoulders+Display:wght@700;800;900&family=Racing+Sans+One&display=swap">
 <style>
 /* Layout: app a una colonna, barra a tab in basso, "tabellone" in alto per asta e sfide */
 :root{
@@ -181,6 +181,29 @@ details>summary::-webkit-details-marker{display:none}
 .mode{border:2px solid var(--line);border-radius:10px;padding:12px;min-width:0}
 .mode.on{border-color:var(--accent)}
 .court{background:var(--surface2);border-radius:10px;padding:14px}
+
+/* ingresso: palazzetto di sera, scelta di un solo look scuro indipendente dal tema */
+.arena-cv{position:fixed;inset:0;width:100%;height:100%;z-index:0;display:block;background:#07090c}
+.entry{position:relative;z-index:1;color:#f4efe8;min-height:100%}
+.entry .hero{padding-top:max(28px,env(safe-area-inset-top,0px));height:clamp(250px,36vh,380px);display:flex;flex-direction:column;justify-content:flex-start}
+.entry .kicker{font:700 .72rem/1 var(--body);letter-spacing:.22em;text-transform:uppercase;color:#f5b37a}
+.entry .logo{font-family:"Racing Sans One","Arial Black",Impact,sans-serif;font-weight:400;font-size:clamp(3.4rem,17vw,7rem);line-height:.9;margin:10px 0 0;letter-spacing:.01em;color:#fff;
+  text-shadow:0 2px 0 #0b0d10,0 6px 18px rgba(0,0,0,.55);transform:skewX(-6deg);transform-origin:left bottom;animation:logoIn .9s cubic-bezier(.2,1.4,.4,1) both}
+.entry .logo span{display:block;color:#ff6a1a;text-shadow:0 2px 0 #b8460c,0 4px 0 #6e2606,0 12px 30px rgba(255,106,26,.5)}
+.entry .tag{max-width:min(30ch,64vw);color:#d9d2c8;margin:14px 0 0;font-size:1rem;animation:fadeUp .8s .25s both}
+.entry .glass{background:rgba(10,12,16,.74);border:1px solid rgba(255,255,255,.12);border-radius:16px;padding:16px;-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);
+  box-shadow:0 20px 50px rgba(0,0,0,.45);color:#f4efe8;animation:fadeUp .8s .4s both}
+.entry .glass .label{color:rgba(255,255,255,.62)}
+.entry .glass input,.entry .glass select{background:rgba(255,255,255,.07);border-color:rgba(255,255,255,.18);color:#fff;color-scheme:dark}
+.entry .glass input::placeholder{color:rgba(255,255,255,.4)}
+.entry .glass .btn{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.16);color:#fff}
+.entry .glass .btn.primary{background:#e35a12;border-color:#e35a12;color:#fff;box-shadow:0 6px 20px rgba(227,90,18,.4)}
+.entry .tabsel{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;background:rgba(255,255,255,.06);padding:4px;border-radius:12px}
+.entry .tabsel button{border:0;background:transparent;color:rgba(255,255,255,.7);font-weight:700;padding:10px 4px;border-radius:9px;min-height:42px;cursor:pointer}
+.entry .tabsel button.on{background:#e35a12;color:#fff}
+.entry .foot{color:rgba(255,255,255,.45);font-size:.78rem;text-align:center;margin-top:14px}
+@keyframes logoIn{from{opacity:0;transform:skewX(-6deg) translateY(30px) scale(.9)}to{opacity:1;transform:skewX(-6deg)}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 @keyframes pop{0%{transform:scale(1.12)}100%{transform:scale(1)}}
 .pop{animation:pop .35s ease-out}
@@ -471,6 +494,172 @@ async function render() {
 /* ---------- LOGIN ---------- */
 const invitedCode = (() => { try { return (new URLSearchParams(location.search).get("lega") || "").toUpperCase().slice(0, 6); } catch { return ""; } })();
 let loginMode = invitedCode ? "entra" : "accedi";
+/* ---------- PALAZZETTO ANIMATO (schermata d'ingresso) ---------- */
+let arenaRaf = 0;
+function startArena() {
+  const cv = $("#arena"); if (!cv) return;
+  cancelAnimationFrame(arenaRaf);
+  const ctx = cv.getContext("2d");
+  const still = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  let W, H, DPR, floor, ballBase, ballShade, R, bx, floorY, horizon;
+  // generatore pseudo-casuale stabile: il parquet è sempre uguale
+  let seed = 7; const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+
+  function buildFloor() {
+    floor = document.createElement("canvas"); floor.width = W * DPR; floor.height = H * DPR;
+    const g = floor.getContext("2d"); g.scale(DPR, DPR);
+    horizon = Math.min(H * 0.34, 330);
+    // cielo del palazzetto: buio con luci lontane
+    const sky = g.createLinearGradient(0, 0, 0, horizon); sky.addColorStop(0, "#05070a"); sky.addColorStop(1, "#141922");
+    g.fillStyle = sky; g.fillRect(0, 0, W, horizon + 2);
+    seed = 11;
+    for (let i = 0; i < 26; i++) {
+      const x = rnd() * W, y = horizon * (0.15 + rnd() * 0.75), r = 6 + rnd() * 22;
+      const rg = g.createRadialGradient(x, y, 0, x, y, r); rg.addColorStop(0, `rgba(255,${190 + rnd() * 50 | 0},140,${0.10 + rnd() * 0.18})`); rg.addColorStop(1, "rgba(255,200,140,0)");
+      g.fillStyle = rg; g.fillRect(x - r, y - r, r * 2, r * 2);
+    }
+    // parquet in prospettiva: assi lungo il campo
+    const f = H * 0.95, cam = 1.55, cx = W / 2;
+    const P = (X, Z) => [cx + (f * X) / Z, horizon + (f * cam) / Z];
+    const zNear = (f * cam) / (H - horizon) * 0.98, zFar = 40;
+    seed = 3;
+    const bw = 0.075;
+    for (let X = -9; X < 9; X += bw) {
+      let Z = zNear - rnd() * 2;
+      const hue = 30 + rnd() * 6;
+      while (Z < zFar) {
+        const len = 1.4 + rnd() * 2.4, z2 = Math.min(Z + len, zFar);
+        const l = 50 + rnd() * 17, sat = 48 + rnd() * 14;
+        const a = P(X, Z), b = P(X + bw, Z), c = P(X + bw, z2), d = P(X, z2);
+        g.fillStyle = `hsl(${hue + rnd() * 4},${sat}%,${l}%)`;
+        g.beginPath(); g.moveTo(a[0], a[1]); g.lineTo(b[0], b[1]); g.lineTo(c[0], c[1]); g.lineTo(d[0], d[1]); g.closePath(); g.fill();
+        // fuga tra le assi
+        g.strokeStyle = "rgba(60,30,10,.18)"; g.lineWidth = Math.max(0.3, (f * 0.004) / Z); g.beginPath(); g.moveTo(a[0], a[1]); g.lineTo(d[0], d[1]); g.stroke();
+        Z = z2;
+      }
+    }
+    // linee del campo (vista dalla linea di fondo verso il centrocampo)
+    const line = (pts, width = 0.05, col = "rgba(255,255,255,.82)") => {
+      for (let i = 0; i < pts.length - 1; i++) {
+        const [x1, z1] = pts[i], [x2, z2] = pts[i + 1]; if (z1 < zNear * 0.7 && z2 < zNear * 0.7) continue;
+        const a = P(x1, Math.max(z1, zNear * 0.7)), b = P(x2, Math.max(z2, zNear * 0.7));
+        g.strokeStyle = col; g.lineCap = "round"; g.lineWidth = Math.max(0.6, (f * width) / ((z1 + z2) / 2));
+        g.beginPath(); g.moveTo(a[0], a[1]); g.lineTo(b[0], b[1]); g.stroke();
+      }
+    };
+    const arc = (x0, z0, r, a0, a1, n = 60) => Array.from({ length: n + 1 }, (_, i) => { const t = a0 + ((a1 - a0) * i) / n; return [x0 + r * Math.cos(t), z0 + r * Math.sin(t)]; });
+    const base = 2.2, rim = base + 1.6;
+    // area colorata
+    const pa = [[-2.45, base], [2.45, base], [2.45, base + 5.8], [-2.45, base + 5.8]].map(([x, z]) => P(x, z));
+    g.fillStyle = "rgba(227,90,18,.42)"; g.beginPath(); pa.forEach(([x, y], i) => (i ? g.lineTo(x, y) : g.moveTo(x, y))); g.closePath(); g.fill();
+    line([[-7.5, base], [7.5, base]]); line([[-7.5, base], [-7.5, zFar]]); line([[7.5, base], [7.5, zFar]]);
+    line([[-2.45, base], [-2.45, base + 5.8], [2.45, base + 5.8], [2.45, base]]);
+    line(arc(0, base + 5.8, 1.8, 0, Math.PI));
+    line([[-6.6, base], [-6.6, rim]]); line([[6.6, base], [6.6, rim]]); line(arc(0, rim, 6.75, Math.acos(6.6 / 6.75) * 0 + 0.21, Math.PI - 0.21, 90));
+    line([[-7.5, base + 14], [7.5, base + 14]]); line(arc(0, base + 14, 1.8, 0, Math.PI * 2, 80));
+    const cc = P(0, base + 14); g.fillStyle = "rgba(227,90,18,.35)"; g.beginPath(); g.ellipse(cc[0], cc[1], (f * 1.8) / (base + 14), (f * cam) / (base + 14) - (f * cam) / (base + 15.8), 0, 0, Math.PI * 2); g.fill();
+    // lucido e buio verso il fondo
+    const fog = g.createLinearGradient(0, horizon, 0, H); fog.addColorStop(0, "rgba(5,7,10,.8)"); fog.addColorStop(0.1, "rgba(5,7,10,.3)"); fog.addColorStop(1, "rgba(5,7,10,.5)");
+    g.fillStyle = fog; g.fillRect(0, horizon, W, H - horizon);
+    const spot = g.createRadialGradient(bx, floorY + 10, 0, bx, floorY + 10, Math.max(W, H) * 0.55); spot.addColorStop(0, "rgba(255,226,180,.28)"); spot.addColorStop(1, "rgba(255,226,180,0)");
+    g.fillStyle = spot; g.fillRect(0, horizon, W, H - horizon);
+    const gloss = g.createLinearGradient(0, horizon, 0, H); gloss.addColorStop(0, "rgba(255,255,255,0)"); gloss.addColorStop(0.5, "rgba(255,255,255,.05)"); gloss.addColorStop(1, "rgba(255,255,255,0)");
+    g.fillStyle = gloss; g.fillRect(0, horizon, W, H - horizon);
+  }
+
+  function buildBall() {
+    const S = Math.ceil(R * 2 * DPR);
+    ballBase = document.createElement("canvas"); ballBase.width = ballBase.height = S;
+    const g = ballBase.getContext("2d"); g.scale(DPR, DPR);
+    g.beginPath(); g.arc(R, R, R, 0, Math.PI * 2); g.clip();
+    const body = g.createRadialGradient(R * 0.7, R * 0.6, R * 0.1, R, R, R * 1.05);
+    body.addColorStop(0, "#f08a3e"); body.addColorStop(0.55, "#d4621f"); body.addColorStop(1, "#7a2f0c");
+    g.fillStyle = body; g.fillRect(0, 0, R * 2, R * 2);
+    // grana del cuoio
+    seed = 99; const n = Math.round(R * R * 1.6);
+    for (let i = 0; i < n; i++) {
+      const x = rnd() * R * 2, y = rnd() * R * 2, s = 0.5 + rnd() * 0.9;
+      g.fillStyle = rnd() > 0.5 ? "rgba(255,210,170,.13)" : "rgba(60,20,5,.16)";
+      g.beginPath(); g.arc(x, y, s, 0, Math.PI * 2); g.fill();
+    }
+    ballShade = document.createElement("canvas"); ballShade.width = ballShade.height = S;
+    const h = ballShade.getContext("2d"); h.scale(DPR, DPR);
+    const rimShade = h.createRadialGradient(R * 0.85, R * 0.8, R * 0.55, R, R, R);
+    rimShade.addColorStop(0, "rgba(0,0,0,0)"); rimShade.addColorStop(1, "rgba(20,6,0,.55)");
+    h.fillStyle = rimShade; h.beginPath(); h.arc(R, R, R, 0, Math.PI * 2); h.fill();
+    const spec = h.createRadialGradient(R * 0.62, R * 0.5, 0, R * 0.62, R * 0.5, R * 0.55);
+    spec.addColorStop(0, "rgba(255,240,220,.38)"); spec.addColorStop(1, "rgba(255,240,220,0)");
+    h.fillStyle = spec; h.beginPath(); h.arc(R, R, R, 0, Math.PI * 2); h.fill();
+  }
+
+  // cuciture del pallone: curve sulla sfera, ruotate e proiettate
+  const seams = (() => {
+    const out = [], N = 72, c = 0.64, rr = Math.sqrt(1 - c * c);
+    const mk = (fn) => out.push(Array.from({ length: N + 1 }, (_, i) => fn((i / N) * Math.PI * 2)));
+    mk((t) => [Math.sin(t), 0, Math.cos(t)]);
+    mk((t) => [0, Math.sin(t), Math.cos(t)]);
+    mk((t) => [c, rr * Math.sin(t), rr * Math.cos(t)]);
+    mk((t) => [-c, rr * Math.sin(t), rr * Math.cos(t)]);
+    return out;
+  })();
+  function rot([x, y, z], a) {
+    let X = x * Math.cos(a) + z * Math.sin(a), Z = -x * Math.sin(a) + z * Math.cos(a), Y = y;      // giro
+    const tx = 0.55, Y2 = Y * Math.cos(tx) - Z * Math.sin(tx), Z2 = Y * Math.sin(tx) + Z * Math.cos(tx); // inclinazione
+    const tz = 0.45; return [X * Math.cos(tz) - Y2 * Math.sin(tz), X * Math.sin(tz) + Y2 * Math.cos(tz), Z2];
+  }
+
+  function layout() {
+    DPR = Math.min(window.devicePixelRatio || 1, 2);
+    W = innerWidth; H = innerHeight;
+    cv.width = W * DPR; cv.height = H * DPR;
+    const wide = W >= 1000;
+    R = wide ? Math.max(60, Math.min(W * 0.06, 96)) : Math.max(36, Math.min(W * 0.12, H * 0.09, 70));
+    if (wide) { const side = (W - 720) / 2; bx = W - side / 2; floorY = H * 0.74; }
+    else { bx = W - R - Math.max(16, W * 0.05); floorY = Math.min(H * 0.34, 330) + 22; }
+    buildFloor(); buildBall();
+  }
+
+  const T0 = performance.now();
+  function frame(now) {
+    if (!document.body.contains(cv)) return; // uscito dalla schermata
+    const t = still ? 0.35 : (now - T0) / 1000;
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    ctx.drawImage(floor, 0, 0, W, H);
+    // rimbalzo: parabola, schiacciamento al contatto
+    const per = 1.35, p = (t % per) / per, hgt = (W >= 1000 ? H * 0.38 : Math.min(H * 0.17, 150)) * 4 * p * (1 - p);
+    const contact = 1 - Math.min(1, hgt / (R * 0.35));
+    const sy = 1 - 0.13 * contact, sx = 1 + 0.1 * contact;
+    const by = floorY - R * sy - hgt;
+    // ombra
+    const sh = 1 - Math.min(1, hgt / 220);
+    ctx.fillStyle = `rgba(0,0,0,${0.22 + 0.4 * sh})`;
+    ctx.beginPath(); ctx.ellipse(bx, floorY + 2, R * (0.55 + 0.45 * sh), R * (0.12 + 0.1 * sh), 0, 0, Math.PI * 2); ctx.fill();
+    // pallone
+    ctx.save(); ctx.translate(bx, floorY); ctx.scale(sx, sy); ctx.translate(-bx, -floorY);
+    const top = by + R * sy - R; // compensa lo schiacciamento
+    ctx.drawImage(ballBase, bx - R, top, R * 2, R * 2);
+    const a = t * 2.4;
+    ctx.lineCap = "round";
+    for (const curve of seams) {
+      let prev = null;
+      for (const pt of curve) {
+        const [x, y, z] = rot(pt, a), q = [bx + x * R * 0.985, top + R - y * R * 0.985, z];
+        if (prev && prev[2] > 0 && q[2] > 0) {
+          ctx.strokeStyle = `rgba(28,12,4,${Math.min(1, 0.35 + q[2])})`; ctx.lineWidth = R * 0.06 * (0.45 + 0.55 * q[2]);
+          ctx.beginPath(); ctx.moveTo(prev[0], prev[1]); ctx.lineTo(q[0], q[1]); ctx.stroke();
+        }
+        prev = q;
+      }
+    }
+    ctx.drawImage(ballShade, bx - R, top, R * 2, R * 2);
+    ctx.restore();
+    if (!still) arenaRaf = requestAnimationFrame(frame);
+  }
+  layout();
+  if (!startArena.bound) { startArena.bound = true; addEventListener("resize", () => { if ($("#arena")) startArena(); }); }
+  arenaRaf = requestAnimationFrame(frame);
+}
+
 function loginView() {
   const f = (id, label, type = "text", extra = "") => `<label class="field"><span class="label">${label}</span><input id="${id}" type="${type}" ${extra}></label>`;
   const forms = {
@@ -489,14 +678,20 @@ function loginView() {
              ${f("lg-pin", "Scegli un PIN (min 4 cifre)", "password", 'inputmode="numeric" maxlength="8"')}
              <button class="btn primary" data-act="create">Crea lega</button>`,
   };
-  return `<div class="login-hero"><div class="label">Lega privata tra amici</div><h1>FANTA<b>NBA</b></h1>
-    <p class="muted" style="max-width:46ch">Asta dal telefono, quintetto ogni sera, punti calcolati dalle statistiche NBA ufficiali.</p></div>
-    <section class="card stack">
-      <div class="row">${["accedi:Accedi", "entra:Ho un codice", "crea:Crea lega"].map((x) => { const [k, l] = x.split(":"); return `<button class="btn small ${loginMode === k ? "primary" : "ghost"}" data-mode="${k}">${l}</button>`; }).join("")}</div>
+  return `<canvas class="arena-cv" id="arena" aria-hidden="true"></canvas>
+  <div class="entry">
+    <div class="hero"><div class="kicker">Lega privata tra amici</div>
+      <h1 class="logo">Fanta<span>NBA</span></h1>
+      <p class="tag">Asta dal telefono, quintetto ogni sera, punti dalle statistiche NBA vere.</p></div>
+    <section class="glass stack">
+      <div class="tabsel">${["accedi:Accedi", "entra:Ho un codice", "crea:Crea lega"].map((x) => { const [k, l] = x.split(":"); return `<button class="${loginMode === k ? "on" : ""}" data-mode="${k}">${l}</button>`; }).join("")}</div>
       <div class="stack" id="login-form">${forms[loginMode]}</div>
-    </section>`;
+    </section>
+    <div class="foot">Statistiche e infortuni da ESPN · aggiornati in automatico</div>
+  </div>`;
 }
 function bindLogin() {
+  startArena();
   $("#app").querySelectorAll("[data-mode]").forEach((b) => b.onclick = () => { loginMode = b.dataset.mode; render(); });
   if (invitedCode && $("#lg-code") && !$("#lg-code").value) $("#lg-code").value = invitedCode;
   const v = (id) => ($("#" + id)?.value || "").trim();
