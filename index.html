@@ -92,6 +92,8 @@ nav.tabs .in{display:grid;grid-template-columns:repeat(5,1fr);width:100%;max-wid
 .tab[aria-current="page"]::before{content:"";position:absolute;left:22%;right:22%;top:0;height:3px;background:var(--accent);border-radius:0 0 3px 3px}
 .tab .dot{position:absolute;top:8px;right:18%;width:8px;height:8px;border-radius:50%;background:var(--loss)}
 .tab .badge{position:absolute;top:4px;right:10%;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:var(--loss);color:#fff;font:700 .7rem/18px var(--body);letter-spacing:0}
+.injline{font-size:.8rem;color:var(--loss);margin-top:2px}
+.injline a{color:inherit;font-weight:700}
 .alert{border:2px solid var(--loss);background:color-mix(in srgb,var(--loss) 8%,var(--surface));border-radius:var(--r);padding:12px 14px}
 .alert.warn{border-color:var(--warn);background:color-mix(in srgb,var(--warn) 9%,var(--surface))}
 
@@ -152,6 +154,8 @@ details>summary::-webkit-details-marker{display:none}
 .slots{display:flex;gap:8px;flex-wrap:wrap}
 .slot{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;font-weight:800;font-size:.78rem;border:2px solid var(--line);color:var(--muted)}
 .slot.bc{border-color:var(--mine);color:var(--mine)} .slot.fc{border-color:var(--accent);color:var(--accent)} .slot.any{border-style:dashed}
+.slots.sm{gap:5px;flex-wrap:nowrap} .slots.sm .slot{width:28px;height:28px;font-size:.7rem;border-width:2px;flex:none}
+.slot.empty{border-style:dashed;opacity:.6} .slot.bc.full{background:var(--mine);color:var(--surface)} .slot.fc.full{background:var(--accent);color:var(--accent-ink)}
 .flow{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
 .flow .step{background:var(--surface2);border-radius:99px;padding:6px 12px;font-weight:700;font-size:.88rem}
 .flow .step.on{background:var(--accent);color:var(--accent-ink)}
@@ -279,18 +283,40 @@ async function loadMyStarters() {
 }
 async function refreshInjuries() {
   try {
-    const rows = await q(sb.from("players").select("id,injury_status,injury_note").limit(2000));
-    for (const r of rows) { const p = S.players.get(r.id); if (p) { p.injury_status = r.injury_status; p.injury_note = r.injury_note; } }
+    const rows = await q(sb.from("players").select("id,injury_status,injury_note,injury_type,injury_side,injury_detail,injury_return,injury_date,injury_long").limit(2000));
+    for (const r of rows) { const p = S.players.get(r.id); if (p) Object.assign(p, r); }
   } catch {}
 }
 const favStar = (id) => `<button class="star ${S.favs.has(id) ? "on" : ""}" data-fav="${id}" aria-label="${S.favs.has(id) ? "Togli dai preferiti" : "Aggiungi ai preferiti"}" title="Preferito">★</button>`;
+const IT_INJ = { ankle: "caviglia", knee: "ginocchio", foot: "piede", hamstring: "bicipite femorale", back: "schiena", "lower back": "schiena", hip: "anca", shoulder: "spalla", wrist: "polso", hand: "mano", calf: "polpaccio", groin: "inguine", achilles: "tendine d'Achille", illness: "malattia", rest: "riposo", concussion: "commozione cerebrale", thigh: "coscia", toe: "dito del piede", finger: "dito", thumb: "pollice", elbow: "gomito", neck: "collo", quadriceps: "quadricipite", abdomen: "addome", rib: "costola", ribs: "costole", personal: "motivi personali", "not injury related": "non è un infortunio", shin: "tibia", leg: "gamba", face: "viso", eye: "occhio", oblique: "obliquo", undisclosed: "non comunicato", suspension: "squalifica", heel: "tallone", chest: "petto", head: "testa", nose: "naso", jaw: "mascella", forearm: "avambraccio", biceps: "bicipite", triceps: "tricipite", pelvis: "bacino", patella: "rotula", "plantar fascia": "fascia plantare", adductor: "adduttore", glute: "gluteo", lumbar: "lombare", other: "altro" };
+const IT_DET = { sprain: "distorsione", strain: "stiramento", fracture: "frattura", soreness: "dolore", surgery: "operazione", tear: "lesione", torn: "rottura", rupture: "rottura", bruise: "contusione", contusion: "contusione", tendinitis: "tendinite", tendinopathy: "tendinopatia", inflammation: "infiammazione", dislocation: "lussazione", spasms: "spasmi", tightness: "indurimento", recovery: "recupero", "not specified": "", "illness": "" };
+const it = (dict, v) => (v ? dict[String(v).toLowerCase()] ?? v : "");
+function injWhat(p) {
+  const parts = [it(IT_INJ, p.injury_type), it(IT_DET, p.injury_detail)].filter(Boolean);
+  const side = /right/i.test(p.injury_side || "") ? " (dx)" : /left/i.test(p.injury_side || "") ? " (sx)" : "";
+  return parts.length ? parts.join(" · ") + side : "";
+}
+function injReturn(p) {
+  if (!p.injury_return) return "";
+  const d = new Date(p.injury_return + "T12:00:00Z"), days = Math.round((d - new Date(etToday() + "T12:00:00Z")) / 864e5);
+  if (days > 150 || p.injury_return > "2027-06-01") return "fuori per la stagione";
+  if (days <= 0) return "rientro previsto a breve";
+  return `rientro previsto ${fmtDay(p.injury_return)} (${days === 1 ? "domani" : "tra " + days + " giorni"})`;
+}
+const espnUrl = (p) => `https://www.espn.com/nba/player/_/id/${p.id}`;
+// riga breve sotto il nome: cosa ha, quando rientra, link ESPN
+function injLine(p) {
+  if (!p.injury_status) return "";
+  const what = injWhat(p), ret = injReturn(p);
+  return `<div class="injline">${what ? `<b>${esc(what)}</b>` : ""}${what && ret ? " · " : ""}${ret ? esc(ret) : ""}${what || ret ? " · " : ""}<a href="${espnUrl(p)}" target="_blank" rel="noopener">ESPN ›</a></div>`;
+}
 const courtChip = (p) => (p.court ? `<span class="chip ${p.court.toLowerCase()}">${p.court}</span>` : "");
 const avatar = (p, lg) => p.headshot ? `<img class="avatar${lg ? " lg" : ""}" src="${esc(p.headshot)}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">` : `<span class="avatar${lg ? " lg" : ""}"></span>`;
 
 /* ---------- caricamento dati ---------- */
 async function loadStatic() {
   const [pl, last, cur] = await Promise.all([
-    q(sb.from("players").select("id,name,team_abbr,court,position,injury_status,injury_note,headshot,active").limit(2000)),
+    q(sb.from("players").select("name,team_abbr,court,position,headshot,active,id,injury_status,injury_note,injury_type,injury_side,injury_detail,injury_return,injury_date,injury_long").limit(2000)),
     q(sb.from("player_last_season").select("*").limit(2000)),
     q(sb.from("player_season").select("*").limit(2000)),
   ]);
@@ -547,7 +573,7 @@ async function formazioneView() {
     const o = opp.get(p.team_abbr), isS = L.starters.includes(p.id), bi = L.bench.indexOf(p.id);
     return `<div class="item">${avatar(p)}<div class="grow" style="min-width:0">
       <div class="ellipsis" style="font-weight:700">${esc(p.name)}</div>
-      <div class="row" style="gap:6px">${courtChip(p)}<span class="muted" style="font-size:.85rem">${esc(p.team_abbr || "—")} · ${o ? esc(o.s) + " " + fmtTime(o.t) : '<span style="color:var(--loss)">non gioca</span>'}</span>${injChip(p)}</div>
+      <div class="row" style="gap:6px">${courtChip(p)}<span class="muted" style="font-size:.85rem">${esc(p.team_abbr || "—")} · ${o ? esc(o.s) + " " + fmtTime(o.t) : '<span style="color:var(--loss)">non gioca</span>'}</span>${injChip(p)}</div>${injLine(p)}
       <div class="muted num" style="font-size:.8rem">media ${r1(estFp(p.id))} pt</div></div>
       ${isS && R().captain?.enabled ? `<button class="star ${L.captain === p.id ? "on" : ""}" data-cap="${p.id}" aria-label="Capitano" title="Capitano">★</button>` : ""}
       <div class="seg"><button class="${isS ? "on" : ""}" data-lu="s" data-id="${p.id}">Tit</button><button class="${bi >= 0 ? "on p" : ""}" data-lu="b" data-id="${p.id}">${bi >= 0 ? "Pan " + (bi + 1) : "Pan"}</button></div></div>`;
@@ -557,7 +583,7 @@ async function formazioneView() {
   const inj = mine.filter((p) => p.injury_status).map((p) => ({ p, starter: injStart.has(p.id), out: /out|suspension|doubtful/i.test(p.injury_status) })).sort((a, b) => b.starter - a.starter || b.out - a.out);
   const injBox = inj.length ? `<section class="alert ${inj.some((x) => x.starter) ? "" : "warn"} stack" style="gap:8px">
     <div class="row between"><b>${inj.some((x) => x.starter) ? `${inj.filter((x) => x.starter).length} titolar${inj.filter((x) => x.starter).length > 1 ? "i" : "e"} infortunat${inj.filter((x) => x.starter).length > 1 ? "i" : "o"}` : "Infortuni in rosa"}</b>${inj.some((x) => x.starter) ? '<span class="muted" style="font-size:.85rem">valuta un cambio</span>' : ""}</div>
-    ${inj.map((x) => `<div class="row" style="gap:8px;align-items:flex-start">${injChip(x.p)}<div class="grow" style="min-width:0"><b>${esc(x.p.name)}</b> ${x.starter ? '<span class="chip on">titolare</span>' : '<span class="chip">panchina/fuori</span>'}<div class="muted" style="font-size:.82rem">${esc(x.p.injury_note || "")}</div></div></div>`).join("")}
+    ${inj.map((x) => `<div class="row" style="gap:8px;align-items:flex-start">${injChip(x.p)}<div class="grow" style="min-width:0"><b>${esc(x.p.name)}</b> ${x.starter ? '<span class="chip on">titolare</span>' : '<span class="chip">panchina/fuori</span>'}${injLine(x.p)}<details style="margin-top:4px"><summary class="muted" style="font-size:.8rem">Cosa dice ESPN (in inglese)</summary><div class="muted" style="font-size:.82rem;margin-top:4px">${esc(x.p.injury_note || "")}${x.p.injury_long ? "<br><br>" + esc(x.p.injury_long) : ""}</div></details></div></div>`).join("")}
   </section>` : "";
   return head("Quintetto", d ? `${fmtDay(d)}${deadline ? (locked ? " · chiuso" : " · chiude alle " + fmtTime(deadline)) : ""}` : "Nessuna partita in programma") + `
   <div class="stack">
@@ -604,6 +630,7 @@ function astaView() {
       </div>
       <div class="timerbar"><i id="tbar" style="width:100%"></i></div>
     </section>
+    ${rosterNeedBox()}
     <section class="card stack">
       ${why ? `<div class="muted">Non puoi offrire: ${esc(why)}.</div>` : leading ? `<div class="muted">Sei il miglior offerente. Aspetta o lascia correre il tempo.</div>` : `
       <div class="row">${[1, 5, 10, 25].map((n) => { const v = a.current_bid + n; return `<button class="btn ${n === 1 ? "primary" : ""}" data-bid="${v}" ${v > myMax || n < (+au.min_increment || 1) ? "disabled" : ""}>+${n} · ${v}</button>`; }).join("")}</div>
@@ -618,6 +645,7 @@ function astaView() {
     board = `<section class="board"><div class="label">Asta aperta</div>
       <div class="mid" style="margin-top:6px">${au.turn_order && turn ? (turn === S.sess.team_id ? "Tocca a te chiamare" : "Chiama " + esc(teamName(turn))) : "Chiunque può chiamare"}</div>
       ${lr ? `<p style="opacity:.8;margin-bottom:0">Ultimo: ${esc(P(lr.player_id).name)} → ${esc(teamName(lr.team_id))} per ${lr.price}</p>` : ""}</section>
+      ${rosterNeedBox()}
       ${myTurn ? nominateBox() : `<section class="card"><div class="muted">Prepara la prossima chiamata: cerca chi ti interessa qui sotto.</div></section>${nominateBox(true)}`}
       ${isAdmin() && au.turn_order ? `<section class="card row"><span class="label">Cambia turno</span><select id="turn-sel" class="grow" style="width:auto">${S.teams.map((t) => `<option value="${t.id}" ${t.id === turn ? "selected" : ""}>${esc(t.name)}</option>`).join("")}</select><button class="btn small" data-act="set-turn">Imposta</button></section>` : ""}`;
   }
@@ -663,13 +691,25 @@ function nominateBox(previewOnly = false) {
     <div class="list" id="pl-list">${pageOf(list, S.page).map((p) => {
       const l = S.last.get(p.id), owner = S.roster.find((r) => r.player_id === p.id);
       return `<div class="item">${favStar(p.id)}${avatar(p)}<div class="grow" style="min-width:0"><div class="ellipsis" style="font-weight:700">${esc(p.name)}</div>
-        <div class="row" style="gap:6px">${courtChip(p)}<span class="muted" style="font-size:.85rem">${esc(p.team_abbr)}</span>${injChip(p)}</div>
+        <div class="row" style="gap:6px">${courtChip(p)}<span class="muted" style="font-size:.85rem">${esc(p.team_abbr)}</span>${injChip(p)}</div>${injLine(p)}
         <div class="muted num" style="font-size:.8rem">${l ? `25-26: ${r1(l.pts)} pt · ${r1(l.reb)} rb · ${r1(l.ast)} as · ${l.gp} gare` : "nessuna statistica 25-26"}</div></div>
         <div style="text-align:right"><div class="label">Quot.</div><div class="num" style="font-family:var(--display);font-weight:900;font-size:1.35rem;line-height:1">${val(p.id)}</div><div class="muted num" style="font-size:.78rem">${r1(estFp(p.id))} pt/gara</div>
         ${owner ? `<span class="chip">${esc(teamName(owner.team_id))} · ${owner.price}</span>` : previewOnly ? "" : `<button class="btn small primary" data-nom="${p.id}">Chiama a ${base}</button>`}</div></div>`;
     }).join("") || `<div class="empty">${S.onlyFav ? "Nessun preferito qui. Tocca la ★ accanto a un giocatore per salvarlo." : "Nessun giocatore trovato"}</div>`}</div>
     ${pager(list.length, S.page, "page")}
   </section>`;
+}
+// riepilogo rosa per reparto: posti pieni, vuoti, quanti mancano
+function rosterNeedBox() {
+  const ro = R().roster || {}, mine = rosterOf(S.sess.team_id).map((r) => P(r.player_id));
+  const row = (c, label) => {
+    const cap = +ro[c.toLowerCase()] || 5, have = mine.filter((p) => p.court === c).length, miss = Math.max(0, cap - have);
+    return `<div class="row" style="gap:10px;align-items:center;flex-wrap:nowrap"><div style="width:72px;flex:none"><span class="chip ${c.toLowerCase()}">${c}</span><div class="muted" style="font-size:.75rem;margin-top:2px">${label}</div></div>
+      <div class="slots sm" style="flex:1;min-width:0">${Array.from({ length: cap }, (_, i) => `<span class="slot ${c.toLowerCase()} ${i < have ? "full" : "empty"}">${i < have ? "✓" : ""}</span>`).join("")}</div>
+      <div style="text-align:right;flex:none"><div class="num" style="font-family:var(--display);font-weight:900;font-size:1.5rem;line-height:1">${have}/${cap}</div><div style="font-size:.75rem;font-weight:700;color:${miss ? "var(--accent)" : "var(--win)"}">${miss ? "mancano " + miss : "completo"}</div></div></div>`;
+  };
+  return `<section class="card stack" style="gap:10px"><div class="row between"><div class="label">La tua rosa</div><div class="muted num" style="font-size:.85rem">${credits(S.sess.team_id)} crediti · max offerta ${Math.max(0, maxBid(S.sess.team_id))}</div></div>
+    ${row("BC", "guardie")}${row("FC", "ali e centri")}</section>`;
 }
 function myRosterBox() {
   const mine = rosterOf(S.sess.team_id).map((r) => ({ ...P(r.player_id), price: r.price })).sort((a, b) => b.price - a.price);
@@ -837,7 +877,7 @@ async function tradeView() {
         ? `<button class="btn small primary" data-act="trade-for" data-pid="${p.id}" data-team="${own.team_id}">Proponi scambio</button>`
         : open ? (isOpen ? "" : `<button class="btn small primary" data-act="fa-open" data-pid="${p.id}">Offerta</button>`) : `<span class="chip">mercato chiuso</span>`;
       return `<div class="item" style="flex-wrap:wrap">${favStar(p.id)}${avatar(p)}<div class="grow" style="min-width:0"><div class="ellipsis" style="font-weight:700">${esc(p.name)}</div>
-        <div class="row" style="gap:6px">${courtChip(p)}<span class="muted" style="font-size:.85rem">${esc(p.team_abbr)} · ${r1(estFp(p.id))} pt/gara</span>${injChip(p)}${own ? `<span class="chip">${esc(teamName(own.team_id))}</span>` : ""}</div></div>
+        <div class="row" style="gap:6px">${courtChip(p)}<span class="muted" style="font-size:.85rem">${esc(p.team_abbr)} · ${r1(estFp(p.id))} pt/gara</span>${injChip(p)}${own ? `<span class="chip">${esc(teamName(own.team_id))}</span>` : ""}</div>${injLine(p)}</div>
         <div style="text-align:right"><div class="label">Quot.</div><div class="num" style="font-family:var(--display);font-weight:900;font-size:1.35rem;line-height:1.1">${v}</div>${action}</div>
         ${isOpen && pool === "fa" && open ? `<div class="stack" style="width:100%">
           <div class="grid2"><label class="field"><span class="muted" style="font-size:.85rem">La tua offerta (min ${v})</span><input id="fa-amt" type="number" min="${v}" value="${M.faAmt || v}"></label>
@@ -878,7 +918,15 @@ function regoleView() {
       <div class="rgrid">${tile(au.base_price, "prezzo base")}${tile("+" + au.reset_seconds + "s", "dopo ogni rilancio")}</div>`)}
     ${sec("Quintetto ogni sera", `<div class="court"><div class="slots" style="justify-content:center">${slots(+ro.min_bc_start || 2, "bc", "BC")}${slots(+ro.min_fc_start || 2, "fc", "FC")}${slots(Math.max(0, (+ro.starters || 5) - (+ro.min_bc_start || 2) - (+ro.min_fc_start || 2)), "any", "?")}</div>
       <div class="muted" style="text-align:center;font-size:.8rem;margin-top:6px">${ro.starters} titolari · almeno ${ro.min_bc_start} BC e ${ro.min_fc_start} FC</div></div>
-      <div class="rgrid">${cap.enabled ? tile("★ ×" + cap.multiplier, "capitano") + tile(cap.per_week, "a settimana") : ""}${tile("1ª", "partita della sera: si chiude")}${tile("Pan", "entra se un titolare non gioca")}</div>`)}
+      <div class="rgrid">${cap.enabled ? tile("★ ×" + cap.multiplier, "capitano") + tile(cap.per_week, "a settimana") : ""}${tile("1ª", "partita della sera: si chiude")}</div>
+      <div class="court" style="display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:center;text-align:center">
+        <div><div class="tile" style="background:var(--surface)"><div class="n num">0</div><div class="t">punti in panchina</div></div></div>
+        <div class="arr" style="font-weight:800;color:var(--muted)">ma</div>
+        <div><div class="tile pos" style="background:var(--surface)"><div class="n num">100%</div><div class="t">se entra al posto di un titolare</div></div></div>
+      </div>
+      <div class="flow" style="font-size:.85rem"><span class="step">Titolare non gioca</span><span class="arr">→</span><span class="step">entra Pan 1 dello stesso reparto</span><span class="arr">→</span><span class="step on">punti pieni</span></div>`)}
+    ${sec("Infortuni", `<div class="row" style="gap:6px"><span class="chip inj">Out</span><span class="muted">non gioca</span><span class="chip dtd">In dubbio</span><span class="muted">forse gioca</span></div>
+      <div class="rgrid">${tile("1 h", "aggiornati da ESPN")}${tile("●", "pallino su Quintetto", "neg")}${tile("data", "rientro previsto")}</div>`)}
     ${sec("Punti", `<div class="rgrid">${STAT.filter(([k]) => +sc[k]).map(([k, l]) => tile(sign(+sc[k]), l, +sc[k] > 0 ? "pos" : "neg")).join("")}
       ${+bo.double_double ? tile(sign(+bo.double_double), "doppia doppia", "pos") : ""}${+bo.triple_double ? tile(sign(+bo.triple_double), "tripla doppia", "pos") : ""}</div>
       <div class="flow" style="font-size:.85rem"><span class="label">Esempio</span>${exParts.map(([k, n]) => `<span class="step">${n} ${n > 1 ? ({ pts: "punti", reb: "rimbalzi", ast: "assist", stl: "rubate", blk: "stoppate", tov: "perse" })[k] : STAT.find((x) => x[0] === k)[1]} ${sign(n * +sc[k])}</span>`).join("")}<span class="arr">=</span><span class="step on num">${r1(exTot)}</span></div>`)}
