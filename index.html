@@ -1063,6 +1063,8 @@ function pager(total, page, attr) {
     <button class="btn small" data-${attr}="${page + 1}" ${page >= pages - 1 ? "disabled" : ""} aria-label="Pagina successiva">Succ. ›</button></div>`;
 }
 const pageOf = (list, page) => list.slice(page * PER_PAGE, page * PER_PAGE + PER_PAGE);
+// partenza minima all'asta = quotazione (se la regola è attiva), mai sotto il prezzo base
+const startOf = (id) => { const au = R().auction || {}, b = +au.base_price || 1; return au.start_from_value === false ? b : Math.max(b, val(id)); };
 function nominateBox(previewOnly = false) {
   const taken = new Set(S.roster.map((r) => r.player_id));
   const qs = S.search.toLowerCase();
@@ -1074,7 +1076,6 @@ function nominateBox(previewOnly = false) {
   list = inBand(list, S.band);
   list.sort((a, b) => val(b.id) - val(a.id) || estFp(b.id) - estFp(a.id));
   const pages = Math.max(1, Math.ceil(list.length / PER_PAGE)); if (S.page >= pages) S.page = pages - 1;
-  const base = +(R().auction || {}).base_price || 1;
   return `<section class="card stack">
     <div class="row"><input id="pl-search" class="grow" style="width:auto" placeholder="Cerca giocatore o squadra (es. LAL)" value="${esc(S.search)}">
     <div class="seg"><button class="${!S.court ? "on" : ""}" data-court="">Tutti</button><button class="${S.court === "BC" ? "on" : ""}" data-court="BC">BC</button><button class="${S.court === "FC" ? "on" : ""}" data-court="FC">FC</button></div></div>
@@ -1086,7 +1087,7 @@ function nominateBox(previewOnly = false) {
       const l = S.last.get(p.id), owner = S.roster.find((r) => r.player_id === p.id);
       return prow(p, {
         stats: l ? `25-26: ${r1(l.pts)} pt · ${r1(l.reb)} rb · ${r1(l.ast)} as · ${l.gp} gare` : "nessuna statistica 25-26",
-        action: owner ? `<span class="chip">${esc(teamName(owner.team_id))} · ${owner.price}</span>` : previewOnly ? "" : `<button class="btn small primary" data-nom="${p.id}">Chiama a ${base}</button>`,
+        action: owner ? `<span class="chip">${esc(teamName(owner.team_id))} · ${owner.price}</span>` : previewOnly ? "" : `<button class="btn small primary" data-nom="${p.id}">Chiama a ${startOf(p.id)}</button>`,
       });
     }).join("") || `<div class="empty">${S.onlyFav ? "Nessun preferito qui. Tocca la ★ accanto a un giocatore per salvarlo." : "Nessun giocatore trovato"}</div>`}</div>
     ${pager(list.length, S.page, "page")}
@@ -1376,7 +1377,7 @@ function regoleView() {
       <div class="row"><span class="chip bc">BC = guardie</span><span class="chip fc">FC = ali e centri</span></div>
       <div class="rgrid">${tile(r.credits, "crediti")}${tile(ro.size, "giocatori")}${tile("max " + ro.max_per_nba_team, "per squadra NBA")}</div>`)}
     ${sec("L'asta", `<div class="flow"><span class="step">Chiami${au.turn_order ? " a turno" : ""}</span><span class="arr">→</span><span class="step">Rilanci +${au.min_increment}</span><span class="arr">→</span><span class="step">${au.timer_seconds} sec</span><span class="arr">→</span><span class="step on">Vince il più alto</span></div>
-      <div class="rgrid">${tile(au.base_price, "prezzo base")}${tile("+" + au.reset_seconds + "s", "dopo ogni rilancio")}</div>`)}
+      <div class="rgrid">${au.start_from_value === false ? tile(au.base_price, "prezzo base") : tile("= quot.", "si parte dalla quotazione")}${tile("+" + au.reset_seconds + "s", "dopo ogni rilancio")}</div>`)}
     ${sec("Quintetto ogni sera", `<div class="court"><div class="slots" style="justify-content:center">${slots(+ro.min_bc_start || 2, "bc", "BC")}${slots(+ro.min_fc_start || 2, "fc", "FC")}${slots(Math.max(0, (+ro.starters || 5) - (+ro.min_bc_start || 2) - (+ro.min_fc_start || 2)), "any", "?")}</div>
       <div class="muted" style="text-align:center;font-size:.8rem;margin-top:6px">${ro.starters} titolari · almeno ${ro.min_bc_start} BC e ${ro.min_fc_start} FC</div></div>
       <div class="rgrid">${cap.enabled ? tile("★ ×" + cap.multiplier, "capitano") + tile(cap.per_week, "a settimana") : ""}${tile("1ª", "partita della sera: si chiude")}</div>
@@ -1441,7 +1442,7 @@ const RULE_FIELDS = [
   ["Punteggio per statistica", [["scoring.pts", "Punto segnato"], ["scoring.reb", "Rimbalzo"], ["scoring.ast", "Assist"], ["scoring.stl", "Palla rubata"], ["scoring.blk", "Stoppata"], ["scoring.tov", "Palla persa"], ["scoring.fg3m", "Tripla segnata (extra)"], ["scoring.fg_miss", "Tiro sbagliato"], ["scoring.ft_miss", "Libero sbagliato"], ["scoring.pf", "Fallo"]]],
   ["Bonus", [["bonus.double_double", "Doppia doppia"], ["bonus.triple_double", "Tripla doppia"]]],
   ["Rosa e quintetto", [["roster.size", "Giocatori in rosa"], ["roster.bc", "Di cui back court"], ["roster.fc", "Di cui front court"], ["roster.starters", "Titolari"], ["roster.min_bc_start", "Min BC titolari"], ["roster.min_fc_start", "Min FC titolari"], ["roster.max_per_nba_team", "Max per squadra NBA"]]],
-  ["Crediti e asta", [["credits", "Crediti a testa"], ["auction.timer_seconds", "Timer chiamata (sec)"], ["auction.reset_seconds", "Tempo minimo dopo un rilancio (sec)"], ["auction.base_price", "Prezzo base"], ["auction.min_increment", "Rilancio minimo"], ["auction.turn_order", "Chiamate a turno", "bool"]]],
+  ["Crediti e asta", [["credits", "Crediti a testa"], ["auction.timer_seconds", "Timer chiamata (sec)"], ["auction.reset_seconds", "Tempo minimo dopo un rilancio (sec)"], ["auction.base_price", "Prezzo base"], ["auction.start_from_value", "Si parte dalla quotazione", "bool"], ["auction.min_increment", "Rilancio minimo"], ["auction.turn_order", "Chiamate a turno", "bool"]]],
   ["Capitano e mercato", [["captain.enabled", "Capitano attivo", "bool"], ["captain.multiplier", "Moltiplicatore capitano"], ["captain.per_week", "Capitani a settimana"], ["market.release_pct", "Rilascio: % della quotazione"], ["market.injury_out_discount", "Sconto quotazione se Out (%)"], ["market.blend_games", "Partite per pesare solo la stagione in corso"]]],
   ["Playoff", [["playoffs.teams", "Squadre ai playoff"], ["playoffs.days_per_round", "Giornate per turno"]]],
 ];
@@ -1511,7 +1512,7 @@ function bindCommon() {
       }
       if (d.cap) { S.lineup.captain = S.lineup.captain === d.cap ? null : d.cap; S.lineup.dirty = true; return render(); }
       if (d.court !== undefined) { S.court = d.court; S.page = 0; return render(); }
-      if (d.nom) { await rpc("auction_nominate", { p_token: tok, p_player: d.nom, p_start: +(R().auction || {}).base_price || 1 }); return; }
+      if (d.nom) { await rpc("auction_nominate", { p_token: tok, p_player: d.nom, p_start: startOf(d.nom) }); return; }
       if (d.bid) { await rpc("auction_bid", { p_token: tok, p_amount: +d.bid }); return; }
       if (d.admAuction) { await rpc("admin_auction", { p_token: tok, p_action: d.admAuction, p_team: null }); return; }
       if (d.pin) { const v = ($("#pin-" + d.pin).value || "").trim(); await rpc("admin_team", { p_token: tok, p_team: d.pin, p_action: "reset_pin", p_value: { pin: v } }); toast(`Nuovo PIN per ${teamName(d.pin)}: ${v}`); return; }
