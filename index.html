@@ -171,6 +171,54 @@ tr.cut td{border-top:2px dashed var(--accent)}
 .star.on{color:var(--accent)}
 .daypick{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px}
 .daypick button{flex:none}
+/* quintetto: campo in parquet */
+.lu{background:#0E1116;color:#F1F4F8;border-radius:16px;overflow:hidden;box-shadow:0 10px 24px rgba(0,0,0,.18)}
+.lu-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:12px 12px 10px}
+.lu-stats div{background:#171C24;border:1px solid #2A3340;border-radius:10px;padding:7px 4px;text-align:center;min-width:0}
+.lu-stats b{display:block;font:900 22px/1.05 var(--display);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lu-stats b.y{color:#FFD23F;font-size:19px;line-height:23px}.lu-stats b.g{color:#3DD68C}.lu-stats b.r{color:#FF6B61}
+.lu-stats small{font:800 10.5px var(--body);color:#8C97A6;letter-spacing:.06em;text-transform:uppercase}
+.lu-hint{padding:8px 14px;font-size:.85rem;color:#FFB27A;font-weight:700;text-align:center;background:#1F2630}
+.lu-hint.bad{color:#FF8A80}
+.lu-court{position:relative;height:420px;perspective:700px;overflow:hidden}
+.lu-floor{position:absolute;left:-90px;right:-90px;top:-150px;bottom:-30px;transform:rotateX(24deg);transform-origin:50% 100%;
+  background:repeating-linear-gradient(90deg,rgba(0,0,0,.06) 0 1px,transparent 1px 26px),repeating-linear-gradient(0deg,rgba(255,255,255,.05) 0 2px,transparent 2px 120px),linear-gradient(180deg,#D9A66B,#C98F55 60%,#B97D45)}
+.lu-floor svg{position:absolute;inset:0;width:100%;height:100%}
+.lu button{font:inherit;color:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.lu .ph{display:block;width:68px;height:68px;margin:0 auto;border-radius:50%;border:3px solid #fff;background:#121820;overflow:hidden;padding:0;box-shadow:0 8px 14px rgba(0,0,0,.45);position:relative}
+.lu .ph img{width:100%;height:100%;object-fit:cover;object-position:50% 12%;display:block}
+.lu .ph .ini{display:grid;place-items:center;height:100%;font:900 22px var(--display)}
+.pc{position:absolute;width:31%;max-width:118px;transform:translateX(-50%);text-align:center}
+.pcard{display:block;width:100%;margin-top:-8px;position:relative;background:#121820;border:0;border-radius:8px;overflow:hidden;padding:0;box-shadow:0 6px 12px rgba(0,0,0,.4)}
+.pcard .n{font:800 15px var(--display);padding:5px 4px 3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:.02em}
+.pcard .n i{font-style:normal;font-size:11px;padding:1px 4px;border-radius:3px;margin-right:4px;vertical-align:2px}
+.pcard .n i.bc{background:#6EA1FF;color:#08142c}.pcard .n i.fc{background:#FF9A5C;color:#2a1103}
+.pcard .r{display:grid;grid-template-columns:1fr 1fr;background:#fff;color:#121820}
+.pcard .r div{padding:4px 0 3px;line-height:1;min-width:0}
+.pcard .r b{font:900 17px/1 var(--display)}.pcard .r b.sm{font-size:13.5px;white-space:nowrap}
+.pcard .r small{display:block;font:800 9px var(--body);color:#5A6676;letter-spacing:.05em;margin-top:2px}
+.pcard .bar{height:3px;background:#3DD68C}.lu .bar.warn,.lu .bi.warn{background:#F2B84B}.lu .bar.bad,.lu .bi.bad{background:#FF6B61}
+.pc.sel .ph,.bp.sel .ph{outline:3px solid var(--accent);outline-offset:3px}
+.pc.sel .pcard{box-shadow:0 0 0 3px var(--accent),0 6px 12px rgba(0,0,0,.4)}
+.pcap,.px{position:absolute;top:-6px;width:30px;height:30px;border-radius:50%;padding:0;z-index:2;font:900 14px/1 var(--display)!important;display:grid;place-items:center}
+.pcap{right:calc(50% - 54px);border:2px solid rgba(255,255,255,.6);background:#121820;color:rgba(255,255,255,.7)}
+.pcap.on{background:#FFD23F;color:#121820;border-color:#FFD23F}
+.px{left:calc(50% - 54px);border:0;background:#fff;color:#121820!important;font:900 18px/1 var(--body)!important}
+.pc.empty .ph{border:2px dashed rgba(255,255,255,.8);background:rgba(0,0,0,.25);color:#fff;font-size:30px;font-weight:300;display:grid;place-items:center;box-shadow:none}
+.pc.empty .pcard{background:rgba(18,24,32,.7)}
+.lu-save{background:#171C24;padding:0 12px 14px}
+.lu-save:empty{display:none}
+.lu-bench{background:#171C24;border-top:1px solid #2A3340;padding:10px 0 12px}
+.lu-bench .t{display:flex;justify-content:space-between;padding:0 14px 8px;font:800 12px var(--display);letter-spacing:.12em;color:#8C97A6}
+.lu-bench .row-b{display:flex;gap:8px;padding:4px 14px 0;overflow-x:auto;scrollbar-width:none}
+.lu-bench .row-b::-webkit-scrollbar{display:none}
+.bp{flex:none;width:68px;text-align:center;background:none;border:0;padding:0;position:relative}
+.bp .ph{width:54px;height:54px;border-width:2px}
+.bp .bn{position:absolute;left:2px;top:-4px;width:20px;height:20px;border-radius:50%;background:#2A3340;color:#fff;font:800 12px/20px var(--display);z-index:1}
+.bp .bi{position:absolute;right:6px;top:0;width:12px;height:12px;border-radius:50%;border:2px solid #171C24;z-index:1}
+.bp .nm{font:800 13px var(--display);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:4px}
+.bp .sm{font-size:10.5px;color:#8C97A6;font-weight:700;white-space:nowrap}
+@media (max-width:350px){.lu .ph{width:58px;height:58px}.pcard .n{font-size:13.5px}.pcard .r b{font-size:15px}}
 .sticky-save{position:sticky;bottom:calc(64px + env(safe-area-inset-bottom,0px));z-index:5}
 
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(80px + env(safe-area-inset-bottom,0px));z-index:50;background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:8px;font-weight:600;max-width:calc(100% - 32px);box-shadow:0 6px 24px rgba(0,0,0,.25)}
@@ -443,6 +491,10 @@ function injLine(p) {
   const what = injWhat(p), ret = injReturn(p);
   return `<div class="injline">${what ? `<b>${esc(what)}</b>` : ""}${what && ret ? " · " : ""}${ret ? esc(ret) : ""}${what || ret ? " · " : ""}<a href="${espnUrl(p)}" target="_blank" rel="noopener">ESPN ›</a></div>`;
 }
+const TEAM_COL = { ATL: "#E03A3E", BOS: "#007A33", BKN: "#444", CHA: "#1D1160", CHI: "#CE1141", CLE: "#860038", DAL: "#00538C", DEN: "#0E2240", DET: "#C8102E", GS: "#1D428A", HOU: "#CE1141", IND: "#002D62", LAC: "#C8102E", LAL: "#552583", MEM: "#5D76A9", MIA: "#98002E", MIL: "#00471B", MIN: "#236192", NO: "#0C2340", NY: "#006BB6", OKC: "#007AC1", ORL: "#0077C0", PHI: "#006BB6", PHX: "#E56020", POR: "#E03A3E", SAC: "#5A2D81", SA: "#C4CED4", TOR: "#CE1141", UTAH: "#002B5C", WSH: "#002B5C" };
+const teamCol = (p) => TEAM_COL[p.team_abbr] || "#fff";
+const shortName = (n) => { const w = (n || "").split(" "); return w.length > 1 ? w.slice(1).join(" ") : n || ""; };
+const headImg = (p, w = 160) => p.headshot ? `<img src="https://a.espncdn.com/combiner/i?img=/i/headshots/nba/players/full/${esc(p.id)}.png&w=${w}&h=${Math.round(w * 0.73)}" alt="" loading="lazy" onerror="this.onerror=null;this.src='${esc(p.headshot)}'">` : `<span class="ini">${esc((p.name || "?").split(" ").map((x) => x[0]).join("").slice(0, 2))}</span>`;
 const courtChip = (p) => (p.court ? `<span class="chip ${p.court.toLowerCase()}">${p.court}</span>` : "");
 const avatar = (p, lg) => p.headshot ? `<img class="avatar${lg ? " lg" : ""}" src="${esc(p.headshot)}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">` : `<span class="avatar${lg ? " lg" : ""}"></span>`;
 
@@ -1010,7 +1062,10 @@ async function formazioneView() {
   const upcoming = days.filter((d) => d >= today).slice(0, 10);
   if (!S.lineupDate || !upcoming.includes(S.lineupDate)) { S.lineupDate = upcoming[0]; S.lineup = null; }
   const d = S.lineupDate;
-  const games = d ? await q(sb.from("games").select("*").eq("game_date", d)) : [];
+  // orari in memoria per 60 s: toccare i giocatori ridisegna subito, senza aspettare la rete
+  const gc = (formazioneView.gc ||= {});
+  if (d && (!gc[d] || Date.now() - gc[d].at > 60000)) gc[d] = { at: Date.now(), rows: await q(sb.from("games").select("*").eq("game_date", d)) };
+  const games = d ? gc[d].rows : [];
   const opp = new Map();
   for (const g of games) { opp.set(g.home_abbr, { s: "vs " + g.away_abbr, t: g.start_time }); opp.set(g.away_abbr, { s: "@ " + g.home_abbr, t: g.start_time }); }
   const deadline = games.length ? games.map((g) => g.start_time).sort()[0] : null;
@@ -1025,16 +1080,55 @@ async function formazioneView() {
   const L = S.lineup, N = +ro.starters || 5;
   const st = L.starters.map(P), nbc = st.filter((p) => p.court === "BC").length, nfc = st.filter((p) => p.court === "FC").length;
   const okCount = L.starters.length === N, okMix = nbc >= (+ro.min_bc_start || 0) && nfc >= (+ro.min_fc_start || 0);
-  const row = (p) => {
-    const o = opp.get(p.team_abbr), isS = L.starters.includes(p.id), bi = L.bench.indexOf(p.id);
-    return `<div class="item">${avatar(p)}<div class="grow" style="min-width:0">
-      <div class="ellipsis" style="font-weight:700">${esc(p.name)}</div>
-      <div class="row" style="gap:6px">${courtChip(p)}<span class="muted" style="font-size:.85rem">${esc(p.team_abbr || "—")} · ${o ? esc(o.s) + " " + fmtTime(o.t) : '<span style="color:var(--loss)">non gioca</span>'}</span>${injChip(p)}</div>${injLine(p)}
-      <div class="muted num" style="font-size:.8rem">media ${r1(estFp(p.id))} pt</div></div>
-      ${isS && R().captain?.enabled ? `<button class="star ${L.captain === p.id ? "on" : ""}" data-cap="${p.id}" aria-label="Capitano" title="Capitano">★</button>` : ""}
-      <div class="seg"><button class="${isS ? "on" : ""}" data-lu="s" data-id="${p.id}">Tit</button><button class="${bi >= 0 ? "on p" : ""}" data-lu="b" data-id="${p.id}">${bi >= 0 ? "Pan " + (bi + 1) : "Pan"}</button></div></div>`;
+  // panchina = tutti i non titolari, nell'ordine scelto (conta per i cambi automatici)
+  L.bench = [...L.bench.filter((id) => !L.starters.includes(id) && mine.some((p) => p.id === id)),
+    ...mine.filter((p) => !L.starters.includes(p.id) && !L.bench.includes(p.id)).sort((a, b) => estFp(b.id) - estFp(a.id)).map((p) => p.id)];
+  let live = new Map(), liveTot = null;
+  if (locked) {
+    const lc = (formazioneView.lc ||= {});
+    if (!lc[d] || Date.now() - lc[d].at > 60000) lc[d] = { at: Date.now(), rows: await q(sb.from("team_scores").select("points,detail").eq("team_id", S.sess.team_id).eq("game_date", d)) };
+    const ts = lc[d].rows;
+    if (ts[0]) { liveTot = +ts[0].points || 0; for (const x of ts[0].detail || []) live.set(x.id, x.pts); }
+  }
+  const cap = R().captain || {}, mult = +cap.multiplier || 2;
+  const est = L.starters.reduce((a, id) => a + estFp(id), 0) + (cap.enabled && L.captain ? (mult - 1) * estFp(L.captain) : 0);
+  const playing = L.starters.filter((id) => opp.get(P(id).team_abbr)).length;
+  const sel = locked ? null : S.luSel;
+  const status = (p, o) => !o || /out|suspension/i.test(p.injury_status || "") ? "bad" : p.injury_status ? "warn" : "";
+  const ordered = L.starters.map(P).sort((a, b) => (a.court === b.court ? 0 : a.court === "FC" ? -1 : 1) || estFp(b.id) - estFp(a.id));
+  const POS = [[50, 2], [22, 34], [78, 34], [28, 66], [72, 66], [50, 66], [50, 34]];
+  const card = (p, i) => {
+    const [x, y] = POS[i] || POS[POS.length - 1], o = opp.get(p.team_abbr), c = L.captain === p.id;
+    const a = locked ? `<div><b>${live.has(p.id) ? r1(live.get(p.id)) : "–"}</b><small>PUNTI</small></div>` : `<div><b>${r1(estFp(p.id))}</b><small>MEDIA</small></div>`;
+    const b = o ? `<div><b class="sm">${esc(o.s)}</b><small>${fmtTime(o.t)}</small></div>` : `<div><b class="sm" style="color:#C2342B">riposa</b><small>NON GIOCA</small></div>`;
+    return `<div class="pc ${sel === p.id ? "sel" : ""}" style="left:${x}%;top:${y}%">
+      ${cap.enabled ? (locked ? (c ? '<span class="pcap on">C</span>' : "") : `<button class="pcap ${c ? "on" : ""}" data-cap="${p.id}" aria-label="Capitano ${esc(p.name)}">C</button>`) : ""}
+      ${locked ? "" : `<button class="px" data-lu-out="${p.id}" aria-label="Manda ${esc(p.name)} in panchina">×</button>`}
+      <button class="ph" data-lu-pick="${p.id}" style="border-color:${teamCol(p)}" aria-label="${esc(p.name)}">${headImg(p)}</button>
+      <button class="pcard" data-lu-pick="${p.id}"><div class="n"><i class="${(p.court || "").toLowerCase()}">${p.court}</i>${esc(shortName(p.name))}</div><div class="r">${a}${b}</div><div class="bar ${status(p, o)}"></div></button></div>`;
   };
-  const group = (c, label) => `<section class="card"><div class="label">${label}</div><div class="list">${mine.filter((p) => p.court === c).sort((a, b) => estFp(b.id) - estFp(a.id)).map(row).join("") || '<div class="empty">—</div>'}</div></section>`;
+  const emptySlot = (i) => { const [x, y] = POS[i]; return `<div class="pc empty" style="left:${x}%;top:${y}%"><button class="ph" data-lu-slot="1" aria-label="Posto libero">+</button><button class="pcard" data-lu-slot="1"><div class="n">Libero</div></button></div>`; };
+  const benchItem = (id, i) => { const p = P(id), o = opp.get(p.team_abbr);
+    return `<button class="bp ${sel === id ? "sel" : ""}" data-lu-pick="${id}"><span class="bn">${i + 1}</span><span class="ph" style="border-color:${teamCol(p)}">${headImg(p, 120)}</span>${p.injury_status ? `<span class="bi ${status(p, o) || "warn"}"></span>` : ""}
+      <div class="nm">${esc(shortName(p.name))}</div><div class="sm">${p.court} · ${o ? esc(o.s) : '<span style="color:#FF6B61">riposa</span>'}</div></button>`; };
+  const warn = !okCount ? `Mancano ${N - L.starters.length} titolar${N - L.starters.length > 1 ? "i" : "e"}` : !okMix ? `Servono almeno ${ro.min_bc_start} BC e ${ro.min_fc_start} FC` : "";
+  const hint = locked ? "🔒 Giornata iniziata: quintetto bloccato" : !sel && !warn && L.dirty ? "Modifiche non salvate: salva in fondo ↓" : sel ? (L.starters.includes(sel) ? "Ora tocca un panchinaro per farlo entrare al suo posto" : "Ora tocca il titolare da far uscire o un posto libero") : warn;
+  const court = `<section class="lu">
+    <div class="lu-stats">
+      ${locked ? `<div><b>${liveTot == null ? "–" : r1(liveTot)}</b><small>punti stanotte</small></div>` : `<div><b>${r1(est)}</b><small>pt stimati</small></div>`}
+      <div><b class="${L.captain ? "y" : ""}">${cap.enabled ? (L.captain ? "★ " + esc(shortName(P(L.captain).name)) : "—") : "no"}</b><small>capitano ×${mult}</small></div>
+      <div><b class="${okCount && okMix ? "g" : "r"}">${playing}/${N}</b><small>giocano</small></div>
+    </div>
+    ${hint ? `<div class="lu-hint ${warn && !sel && !locked ? "bad" : ""}">${hint}</div>` : ""}
+    <div class="lu-court"><div class="lu-floor"><svg viewBox="0 0 100 100" preserveAspectRatio="none"><g fill="none" stroke="#fff" stroke-opacity=".85" stroke-width=".5"><rect x="4" y="2" width="92" height="120"/><rect x="34" y="2" width="32" height="34"/><path d="M34 36 a16 12 0 0 0 32 0"/><path d="M12 2 V18 a38 34 0 0 0 76 0 V2"/><circle cx="50" cy="8" r="2.4"/></g><rect x="34" y="2" width="32" height="34" fill="#E35A12" fill-opacity=".35"/></svg></div>
+      ${Array.from({ length: N }, (_, i) => ordered[i] ? card(ordered[i], i) : emptySlot(i)).join("")}
+    </div>
+    <div class="lu-bench"><div class="t"><span>PANCHINA · 0 PUNTI</span><span>${locked ? "" : "1 = primo cambio"}</span></div>
+      <div class="row-b">${L.bench.map(benchItem).join("") || '<span style="color:#8C97A6;padding:6px 0">Tutti in campo</span>'}</div></div>
+    <div class="lu-save">${locked ? "" : L.dirty || L.savedFor !== d
+      ? `<button class="btn primary" style="width:100%;min-height:50px;font:900 1.25rem var(--display);letter-spacing:.04em" data-act="save-lineup" ${!d ? "disabled" : ""}>SALVA QUINTETTO</button>`
+      : `<div style="text-align:center;color:#3DD68C;font-weight:800">✓ Salvato per ${fmtDay(d)}</div>`}</div>
+  </section>`;
   const injStart = new Set(L.starters);
   const inj = mine.filter((p) => p.injury_status).map((p) => ({ p, starter: injStart.has(p.id), out: /out|suspension|doubtful/i.test(p.injury_status) })).sort((a, b) => b.starter - a.starter || b.out - a.out);
   const injBox = inj.length ? `<section class="alert ${inj.some((x) => x.starter) ? "" : "warn"} stack" style="gap:8px">
@@ -1045,16 +1139,10 @@ async function formazioneView() {
   <div class="stack">
     ${injBox}
     <div class="daypick">${upcoming.map((x) => `<button class="btn small ${x === d ? "primary" : ""}" data-lday="${x}">${fmtDay(x)}</button>`).join("")}</div>
-    <section class="card row between">
-      <div><div class="label">Titolari</div><div class="num" style="font-family:var(--display);font-weight:900;font-size:1.8rem;color:${okCount && okMix ? "var(--win)" : "var(--ink)"}">${L.starters.length}/${N}</div></div>
-      <div class="num muted">${nbc} BC (min ${ro.min_bc_start}) · ${nfc} FC (min ${ro.min_fc_start})${R().captain?.enabled ? `<br>Capitano: ${L.captain ? esc(P(L.captain).name) : "nessuno"} (×${R().captain.multiplier})` : ""}</div>
-    </section>
     ${L.savedFor && L.savedFor !== d ? `<p class="muted" style="margin:0">Ti mostro il quintetto salvato per ${fmtDay(L.savedFor)}: se non cambi nulla resta valido anche oggi. Il capitano va scelto ogni volta.</p>` : ""}
-    ${group("BC", "Back court · guardie")}${group("FC", "Front court · ali e centri")}
-    <p class="muted" style="margin:0">Se un titolare non gioca, entra il primo panchinaro dello stesso reparto (Pan 1, poi Pan 2…).</p>
-    ${locked ? `<div class="muted" style="text-align:center">Giornata già iniziata: quintetto bloccato</div>`
-      : L.dirty || L.savedFor !== d ? `<div class="sticky-save"><button class="btn primary" style="width:100%;min-height:48px" data-act="save-lineup" ${!d ? "disabled" : ""}>Salva quintetto${L.dirty ? " (modifiche non salvate)" : ""}</button></div>`
-      : `<div class="row" style="justify-content:center;color:var(--win);font-weight:700">✓ Quintetto salvato per ${fmtDay(d)}</div>`}
+    ${court}
+    <p class="muted" style="margin:0">Tocca un giocatore e poi un altro per scambiarli. Se un titolare non gioca, entra il primo panchinaro dello stesso reparto (1, poi 2…).</p>
+
   </div>`;
 }
 function releaseBox(mine) {
@@ -1573,7 +1661,7 @@ function bindCommon() {
       if (d.day) { S.day = d.day; S.openMatch = null; return render(); }
       if (d.match) { S.openMatch = S.openMatch === +d.match ? null : +d.match; return render(); }
       if (d.teamOpen) { S.openMatch = S.openMatch === d.teamOpen ? null : d.teamOpen; return render(); }
-      if (d.lday) { S.lineupDate = d.lday; S.lineup = null; return render(); }
+      if (d.lday) { S.lineupDate = d.lday; S.lineup = null; S.luSel = null; return render(); }
       if (d.lu) {
         const L = S.lineup, id = d.id, N = +(R().roster || {}).starters || 5;
         if (d.lu === "s") {
@@ -1584,6 +1672,22 @@ function bindCommon() {
           else { L.bench.push(id); L.starters = L.starters.filter((x) => x !== id); if (L.captain === id) L.captain = null; }
         }
         L.dirty = true; return render();
+      }
+      if (d.luPick || d.luOut || d.luSlot) {
+        const L = S.lineup; if (!L) return;
+        const swapIn = (inId, outId) => { const i = L.starters.indexOf(outId), j = L.bench.indexOf(inId); L.starters[i] = inId; L.bench[j] = outId; if (L.captain === outId) L.captain = null; };
+        if (d.luOut) { L.starters = L.starters.filter((x) => x !== d.luOut); L.bench.push(d.luOut); if (L.captain === d.luOut) L.captain = null; S.luSel = null; L.dirty = true; return render(); }
+        if (d.luSlot) {
+          if (!S.luSel || L.starters.includes(S.luSel)) return toast("Prima tocca un giocatore della panchina");
+          L.starters.push(S.luSel); L.bench = L.bench.filter((x) => x !== S.luSel); S.luSel = null; L.dirty = true; return render();
+        }
+        const id = d.luPick, a = S.luSel;
+        if (!a || a === id) { S.luSel = a === id ? null : id; return render(); }
+        const aS = L.starters.includes(a), bS = L.starters.includes(id);
+        if (aS && bS) { S.luSel = id; return render(); }
+        if (!aS && !bS) { const i = L.bench.indexOf(a), j = L.bench.indexOf(id); [L.bench[i], L.bench[j]] = [L.bench[j], L.bench[i]]; }
+        else if (aS) swapIn(id, a); else swapIn(a, id);
+        S.luSel = null; L.dirty = true; return render();
       }
       if (d.cap) { S.lineup.captain = S.lineup.captain === d.cap ? null : d.cap; S.lineup.dirty = true; return render(); }
       if (d.court !== undefined) { S.court = d.court; S.page = 0; return render(); }
