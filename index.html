@@ -541,6 +541,10 @@ function subscribe() {
         toast(`Superato: ${teamName(p.new.current_team_id)} offre ${p.new.current_bid}`, true);
       }
       if (p.new?.status === "open" && prev?.status !== "open" && p.new.nominated_by !== S.sess.team_id) { try { navigator.vibrate?.(80); } catch {} }
+      if (S.league?.status === "auction" && (R().auction || {}).turn_order && p.new?.status !== "open" && p.new?.next_team_id === S.sess.team_id && (prev?.next_team_id !== S.sess.team_id || prev?.status === "open")) {
+        try { navigator.vibrate?.([200, 80, 200, 80, 200]); } catch {}
+        setTimeout(() => toast("🏀 Tocca a te chiamare!"), 1600);
+      }
       if (prev?.status === "open" && p.new?.status !== "open") { try { await reloadRoster(); } catch {} }
       if (p.new?.last_result && JSON.stringify(p.new.last_result) !== JSON.stringify(prev?.last_result)) {
         const r = p.new.last_result; toast(`${P(r.player_id).name} a ${teamName(r.team_id)} per ${r.price}`);
@@ -1062,6 +1066,15 @@ function releaseBox(mine) {
 }
 
 /* ---------- ASTA ---------- */
+// i prossimi a chiamare dopo chi è di turno (saltando le rose piene)
+function turnQueue(turn) {
+  const size = +(R().roster || {}).size || 10, ts = S.teams, i = ts.findIndex((t) => t.id === turn);
+  if (i < 0) return "";
+  const next = [];
+  for (let k = 1; k < ts.length && next.length < 3; k++) { const t = ts[(i + k) % ts.length]; if (rosterOf(t.id).length < size) next.push(t); }
+  if (!next.length) return "";
+  return `<div class="row" style="gap:6px;margin-top:8px;opacity:.85;font-size:.9rem;flex-wrap:wrap"><span>Poi:</span>${next.map((t, k) => `<span style="display:inline-flex;gap:4px;align-items:center;${t.id === S.sess.team_id ? "color:var(--accent);font-weight:800" : "font-weight:700"}">${teamLogo(t, 18)}${esc(t.id === S.sess.team_id ? "Tu" : t.name)}</span>${k < next.length - 1 ? "<span>→</span>" : ""}`).join("")}</div>`;
+}
 function astaView() {
   const a = S.auction || {}, lg = S.league, ro = R().roster || {}, au = R().auction || {};
   const open = lg.status === "auction" || lg.status === "season";
@@ -1098,7 +1111,8 @@ function astaView() {
     const turn = a.next_team_id, myTurn = !au.turn_order || !turn || turn === S.sess.team_id || isAdmin();
     const lr = a.last_result;
     board = `<section class="board"><div class="label">Asta aperta</div>
-      <div class="mid" style="margin-top:6px">${au.turn_order && turn ? (turn === S.sess.team_id ? "Tocca a te chiamare" : "Chiama " + esc(teamName(turn))) : "Chiunque può chiamare"}</div>
+      <div class="mid" style="margin-top:6px;${turn === S.sess.team_id && au.turn_order ? "color:var(--accent)" : ""}">${au.turn_order && turn ? (turn === S.sess.team_id ? "Tocca a te chiamare!" : "Chiama " + esc(teamName(turn))) : "Chiunque può chiamare"}</div>
+      ${au.turn_order && turn ? turnQueue(turn) : ""}
       ${lr ? `<p style="opacity:.8;margin-bottom:0">Ultimo: ${esc(P(lr.player_id).name)} → ${esc(teamName(lr.team_id))} per ${lr.price}</p>` : ""}</section>
       ${rosterNeedBox()}
       ${myTurn ? nominateBox() : `<section class="card"><div class="muted">Prepara la prossima chiamata: cerca chi ti interessa qui sotto.</div></section>${nominateBox(true)}`}
