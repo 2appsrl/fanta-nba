@@ -206,6 +206,13 @@ tr.cut td{border-top:2px dashed var(--accent)}
 .px{left:calc(50% - 54px);border:0;background:#fff;color:#121820!important;font:900 18px/1 var(--body)!important}
 .pc.empty .ph{border:2px dashed rgba(255,255,255,.8);background:rgba(0,0,0,.25);color:#fff;font-size:30px;font-weight:300;display:grid;place-items:center;box-shadow:none}
 .pc.empty .pcard{background:rgba(18,24,32,.7)}
+.lu-coach{display:flex;align-items:center;gap:12px;padding:12px 14px;background:#171C24;border-bottom:1px solid #2A3340}
+.lu-coach.on{background:linear-gradient(90deg,rgba(61,214,140,.18),#171C24)}
+.lu-coach .tx{flex:1;min-width:0}.lu-coach b{display:block;font:800 17px var(--display);letter-spacing:.02em}
+.lu-coach small{font-size:.78rem;color:#9AA6B5;font-weight:600}
+.lu .sw{flex:none;width:56px;height:32px;border-radius:999px;border:0;background:#3a4656;position:relative;padding:0;transition:background .2s}
+.lu .sw i{position:absolute;left:3px;top:3px;width:26px;height:26px;border-radius:50%;background:#fff;transition:left .2s;box-shadow:0 2px 6px rgba(0,0,0,.4)}
+.lu .sw.on{background:#13804B}.lu .sw.on i{left:27px}
 .lu-caps{background:#171C24;border-top:1px solid #2A3340;padding:10px 12px 12px}
 .lu-caps .t{display:flex;justify-content:space-between;font:800 12px var(--display);letter-spacing:.12em;color:#8C97A6}
 .lu-caps .t .bad{color:#FF8A80}.lu-caps .t .ok{color:#3DD68C}
@@ -1121,6 +1128,8 @@ async function formazioneView() {
   for (const g of games) { opp.set(g.home_abbr, { s: "vs " + g.away_abbr, t: g.start_time }); opp.set(g.away_abbr, { s: "@ " + g.home_abbr, t: g.start_time }); }
   const deadline = games.length ? games.map((g) => g.start_time).sort()[0] : null;
   const locked = deadline && now() >= new Date(deadline).getTime();
+  const auto = !!me()?.auto_coach, noEdit = locked || auto; // non modificabile a mano
+  S.luRO = noEdit;
 
   if (!S.lineup || S.lineup.date !== d) {
     const rows = await q(sb.from("lineups").select("*").eq("team_id", S.sess.team_id).lte("game_date", d).order("game_date", { ascending: false }).limit(1));
@@ -1147,7 +1156,7 @@ async function formazioneView() {
   const capNow = L.captains.find((id) => L.starters.includes(id) && opp.get(P(id).team_abbr)) || null; // chi farebbe da capitano stasera
   const est = L.starters.reduce((a, id) => a + estFp(id), 0) + (cap.enabled && capNow ? (mult - 1) * estFp(capNow) : 0);
   const playing = L.starters.filter((id) => opp.get(P(id).team_abbr)).length;
-  const sel = locked ? null : S.luSel;
+  const sel = noEdit ? null : S.luSel;
   const status = (p, o) => !o || /out|suspension/i.test(p.injury_status || "") ? "bad" : p.injury_status ? "warn" : "";
   const ordered = L.starters.map(P).sort((a, b) => (a.court === b.court ? 0 : a.court === "FC" ? -1 : 1) || estFp(b.id) - estFp(a.id));
   const POS = [[50, 2], [22, 34], [78, 34], [28, 66], [72, 66], [50, 66], [50, 34]];
@@ -1156,8 +1165,8 @@ async function formazioneView() {
     const a = locked ? `<div><b>${live.has(p.id) ? r1(live.get(p.id)) : "–"}</b><small>PUNTI</small></div>` : `<div><b>${r1(estFp(p.id))}</b><small>MEDIA</small></div>`;
     const b = o ? `<div><b class="sm">${esc(o.s)}</b><small>${fmtTime(o.t)}</small></div>` : `<div><b class="sm" style="color:#C2342B">riposa</b><small>NON GIOCA</small></div>`;
     return `<div class="pc ${sel === p.id ? "sel" : ""}" style="left:${x}%;top:${y}%">
-      ${cap.enabled ? (locked ? (c ? `<span class="pcap ${eff ? "on" : "lst"}">C${ci + 1}</span>` : "") : `<button class="pcap ${eff ? "on" : c ? "lst" : ""}" data-cap="${p.id}" aria-label="Capitano ${esc(p.name)}">${c ? "C" + (ci + 1) : "C"}</button>`) : ""}
-      ${locked ? "" : `<button class="px" data-lu-out="${p.id}" aria-label="Manda ${esc(p.name)} in panchina">×</button>`}
+      ${cap.enabled ? (noEdit ? (c ? `<span class="pcap ${eff ? "on" : "lst"}">C${ci + 1}</span>` : "") : `<button class="pcap ${eff ? "on" : c ? "lst" : ""}" data-cap="${p.id}" aria-label="Capitano ${esc(p.name)}">${c ? "C" + (ci + 1) : "C"}</button>`) : ""}
+      ${noEdit ? "" : `<button class="px" data-lu-out="${p.id}" aria-label="Manda ${esc(p.name)} in panchina">×</button>`}
       <button class="ph" data-lu-pick="${p.id}" style="border-color:${teamCol(p)}" aria-label="${esc(p.name)}">${headImg(p)}</button>
       <button class="pcard" data-lu-pick="${p.id}"><div class="n"><i class="${(p.court || "").toLowerCase()}">${p.court}</i>${esc(shortName(p.name))}</div><div class="r">${a}${b}</div><div class="bar ${status(p, o)}"></div></button></div>`;
   };
@@ -1173,12 +1182,14 @@ async function formazioneView() {
       ${L.captains.map((id, i) => { const p = P(id), o = opp.get(p.team_abbr), isS = L.starters.includes(id), e = locked ? liveCap === id : capNow === id;
         return `<div class="cr ${e ? "on" : ""}"><span class="cn">C${i + 1}</span><span class="ph sm" style="border-color:${teamCol(p)}">${headImg(p, 80)}</span>
           <div class="cx"><b>${esc(shortName(p.name))}</b><small>${isS ? "titolare" : "panchina"} · ${o ? esc(o.s) : '<span style="color:#FF6B61">non gioca</span>'}${e ? ' · <span style="color:#FFD23F">capitano stanotte</span>' : ""}</small></div>
-          ${locked ? "" : `<button data-capmv="${id}" data-dir="-1" ${i ? "" : "disabled"} aria-label="Su">↑</button><button data-capmv="${id}" data-dir="1" ${i < L.captains.length - 1 ? "" : "disabled"} aria-label="Giù">↓</button><button data-cap="${id}" aria-label="Togli">✕</button>`}</div>`; }).join("")}
-      ${locked || !rest.length ? "" : `<div class="add"><span>Aggiungi:</span>${rest.map((p) => `<button data-cap="${p.id}">+ ${esc(shortName(p.name))}</button>`).join("")}</div>`}</div>`;
+          ${noEdit ? "" : `<button data-capmv="${id}" data-dir="-1" ${i ? "" : "disabled"} aria-label="Su">↑</button><button data-capmv="${id}" data-dir="1" ${i < L.captains.length - 1 ? "" : "disabled"} aria-label="Giù">↓</button><button data-cap="${id}" aria-label="Togli">✕</button>`}</div>`; }).join("")}
+      ${noEdit || !rest.length ? "" : `<div class="add"><span>Aggiungi:</span>${rest.map((p) => `<button data-cap="${p.id}">+ ${esc(shortName(p.name))}</button>`).join("")}</div>`}</div>`;
   };
   const warn = !okCount ? `Mancano ${N - L.starters.length} titolar${N - L.starters.length > 1 ? "i" : "e"}` : !okMix ? `Servono almeno ${ro.min_bc_start} BC e ${ro.min_fc_start} FC` : "";
-  const hint = locked ? "🔒 Giornata iniziata: quintetto bloccato" : !sel && !warn && L.dirty ? "Modifiche non salvate: salva in fondo ↓" : sel ? (L.starters.includes(sel) ? "Ora tocca un panchinaro per farlo entrare al suo posto" : "Ora tocca il titolare da far uscire o un posto libero") : warn;
+  const hint = locked ? "🔒 Giornata iniziata: quintetto bloccato" : auto ? "🤖 Ci pensa il Secondo Allenatore: aggiorna quintetto e capitani fino all'inizio della serata" : !sel && !warn && L.dirty ? "Modifiche non salvate: salva in fondo ↓" : sel ? (L.starters.includes(sel) ? "Ora tocca un panchinaro per farlo entrare al suo posto" : "Ora tocca il titolare da far uscire o un posto libero") : warn;
   const court = `<section class="lu">
+    <div class="lu-coach ${auto ? "on" : ""}"><div class="tx"><b>🤖 Secondo Allenatore</b><small>${auto ? "Attivo: sceglie lui quintetto e capitani ogni sera" : "Se lo accendi sceglie lui quintetto e capitani ogni sera"}</small></div>
+      <button class="sw ${auto ? "on" : ""}" data-act="auto-coach" role="switch" aria-checked="${auto}" aria-label="Secondo Allenatore"><i></i></button></div>
     <div class="lu-stats">
       ${locked ? `<div><b>${liveTot == null ? "–" : r1(liveTot)}</b><small>punti stanotte</small></div>` : `<div><b>${r1(est)}</b><small>pt stimati</small></div>`}
       <div><b class="${(locked ? liveCap : capNow) ? "y" : ""}">${cap.enabled ? ((locked ? liveCap : capNow) ? "★ " + esc(shortName(P(locked ? liveCap : capNow).name)) : "—") : "no"}</b><small>capitano ×${mult}</small></div>
@@ -1188,10 +1199,10 @@ async function formazioneView() {
     <div class="lu-court"><div class="lu-floor"><svg viewBox="0 0 100 100" preserveAspectRatio="none"><g fill="none" stroke="#fff" stroke-opacity=".85" stroke-width=".5"><rect x="4" y="2" width="92" height="120"/><rect x="34" y="2" width="32" height="34"/><path d="M34 36 a16 12 0 0 0 32 0"/><path d="M12 2 V18 a38 34 0 0 0 76 0 V2"/><circle cx="50" cy="8" r="2.4"/></g><rect x="34" y="2" width="32" height="34" fill="#E35A12" fill-opacity=".35"/></svg></div>
       ${Array.from({ length: N }, (_, i) => ordered[i] ? card(ordered[i], i) : emptySlot(i)).join("")}
     </div>
-    <div class="lu-bench"><div class="t"><span>PANCHINA · 0 PUNTI</span><span>${locked ? "" : "1 = primo cambio"}</span></div>
+    <div class="lu-bench"><div class="t"><span>PANCHINA · 0 PUNTI</span><span>${noEdit ? "" : "1 = primo cambio"}</span></div>
       <div class="row-b">${L.bench.map(benchItem).join("") || '<span style="color:#8C97A6;padding:6px 0">Tutti in campo</span>'}</div></div>
     ${cap.enabled ? capBox() : ""}
-    <div class="lu-save">${locked ? "" : L.dirty || L.savedFor !== d
+    <div class="lu-save">${noEdit ? "" : L.dirty || L.savedFor !== d
       ? `<button class="btn primary" style="width:100%;min-height:50px;font:900 1.25rem var(--display);letter-spacing:.04em" data-act="save-lineup" ${!d ? "disabled" : ""}>SALVA QUINTETTO</button>`
       : `<div style="text-align:center;color:#3DD68C;font-weight:800">✓ Salvato per ${fmtDay(d)}</div>`}</div>
   </section>`;
@@ -1609,7 +1620,7 @@ function regoleView() {
       <div class="rgrid">${au.start_from_value === false ? tile(au.base_price, "prezzo base") : tile("= quot.", "si parte dalla quotazione")}${tile("+" + au.reset_seconds + "s", "dopo ogni rilancio")}</div>`)}
     ${sec("Quintetto ogni sera", `<div class="court"><div class="slots" style="justify-content:center">${slots(+ro.min_bc_start || 2, "bc", "BC")}${slots(+ro.min_fc_start || 2, "fc", "FC")}${slots(Math.max(0, (+ro.starters || 5) - (+ro.min_bc_start || 2) - (+ro.min_fc_start || 2)), "any", "?")}</div>
       <div class="muted" style="text-align:center;font-size:.8rem;margin-top:6px">${ro.starters} titolari · almeno ${ro.min_bc_start} BC e ${ro.min_fc_start} FC</div></div>
-      <div class="rgrid">${cap.enabled ? tile("★ ×" + cap.multiplier, "capitano ogni sera") + tile("C1→C" + (cap.min_list || 5), "se il primo non gioca, passa al dopo") : ""}${tile("1ª", "partita della sera: si chiude")}</div>
+      <div class="rgrid">${cap.enabled ? tile("★ ×" + cap.multiplier, "capitano ogni sera") + tile("C1→C" + (cap.min_list || 5), "se il primo non gioca, passa al dopo") : ""}${tile("🤖", "Secondo Allenatore: se lo accendi sceglie lui ogni sera")}${tile("1ª", "partita della sera: si chiude")}</div>
       <div class="court" style="display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:center;text-align:center">
         <div><div class="tile" style="background:var(--surface)"><div class="n num">0</div><div class="t">punti in panchina</div></div></div>
         <div class="arr" style="font-weight:800;color:var(--muted)">ma</div>
@@ -1739,6 +1750,7 @@ function bindCommon() {
         }
         L.dirty = true; return render();
       }
+      if ((d.luPick || d.luOut || d.luSlot || d.cap || d.capmv) && S.tab === "formazione" && S.luRO) return toast(me()?.auto_coach ? "Ci pensa il Secondo Allenatore: spegnilo per decidere tu" : "Giornata iniziata: quintetto bloccato");
       if (d.luPick || d.luOut || d.luSlot) {
         const L = S.lineup; if (!L) return;
         const swapIn = (inId, outId) => { const i = L.starters.indexOf(outId), j = L.bench.indexOf(inId); L.starters[i] = inId; L.bench[j] = outId; };
@@ -1818,6 +1830,12 @@ function bindCommon() {
         case "recompute": { const r = await rpc("admin_window", { p_token: tok, p_action: "recompute_values", p_opens: null, p_closes: null, p_id: null }); toast(`Quotazioni aggiornate (${r.players} giocatori)`); return; }
         case "bid-custom": { const v = +$("#bid-custom").value; if (!v) return; await rpc("auction_bid", { p_token: tok, p_amount: v }); break; }
         case "set-turn": await rpc("admin_auction", { p_token: tok, p_action: "set_turn", p_team: $("#turn-sel").value }); toast("Turno aggiornato"); break;
+        case "auto-coach": {
+          const on = !me()?.auto_coach;
+          await rpc("set_auto_coach", { p_token: tok, p_on: on });
+          me().auto_coach = on; S.lineup = null; S.luSel = null;
+          toast(on ? "Secondo Allenatore attivo: da ora sceglie lui" : "Secondo Allenatore spento: decidi tu"); return render();
+        }
         case "save-lineup": {
           const L = S.lineup;
           const capOn = (R().captain || {}).enabled, need = Math.min(+(R().captain || {}).min_list || 5, rosterOf(S.sess.team_id).length);
