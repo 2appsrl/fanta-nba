@@ -206,6 +206,23 @@ tr.cut td{border-top:2px dashed var(--accent)}
 .px{left:calc(50% - 54px);border:0;background:#fff;color:#121820!important;font:900 18px/1 var(--body)!important}
 .pc.empty .ph{border:2px dashed rgba(255,255,255,.8);background:rgba(0,0,0,.25);color:#fff;font-size:30px;font-weight:300;display:grid;place-items:center;box-shadow:none}
 .pc.empty .pcard{background:rgba(18,24,32,.7)}
+.lu-caps{background:#171C24;border-top:1px solid #2A3340;padding:10px 12px 12px}
+.lu-caps .t{display:flex;justify-content:space-between;font:800 12px var(--display);letter-spacing:.12em;color:#8C97A6}
+.lu-caps .t .bad{color:#FF8A80}.lu-caps .t .ok{color:#3DD68C}
+.lu-caps .why{margin:6px 0 8px;font-size:.82rem;line-height:1.35;color:#C9D1DB}
+.lu-caps .why b{color:#FFD23F}
+.lu-caps .cr{display:flex;align-items:center;gap:8px;padding:6px 6px;border-radius:10px;margin-top:4px;background:#1F2630}
+.lu-caps .cr.on{background:rgba(255,210,63,.14);box-shadow:inset 0 0 0 1px rgba(255,210,63,.5)}
+.lu-caps .cn{width:30px;height:30px;flex:none;border-radius:50%;background:#2A3340;display:grid;place-items:center;font:900 13px var(--display)}
+.lu-caps .cr.on .cn{background:#FFD23F;color:#121820}
+.lu .ph.sm{width:34px;height:34px;border-width:2px;margin:0;flex:none;box-shadow:none}
+.lu-caps .cx{flex:1;min-width:0;line-height:1.15}.lu-caps .cx b{font:800 15px var(--display);display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lu-caps .cx small{font-size:.72rem;color:#8C97A6;font-weight:700}
+.lu-caps .cr button{width:34px;height:34px;flex:none;border-radius:8px;border:1px solid #3a4656;background:#121820;color:#fff;font-weight:800;padding:0}
+.lu-caps .cr button:disabled{opacity:.3}
+.lu-caps .add{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;align-items:center;font-size:.8rem;color:#8C97A6;font-weight:700}
+.lu-caps .add button{border:1px dashed #4a5768;background:none;color:#C9D1DB;border-radius:999px;padding:5px 10px;font:700 .8rem var(--body)}
+.pcap.lst{background:#121820;color:#FFD23F;border-color:#FFD23F}
 .lu-save{background:#171C24;padding:0 12px 14px}
 .lu-save:empty{display:none}
 .lu-bench{background:#171C24;border-top:1px solid #2A3340;padding:10px 0 12px}
@@ -1109,7 +1126,7 @@ async function formazioneView() {
     const rows = await q(sb.from("lineups").select("*").eq("team_id", S.sess.team_id).lte("game_date", d).order("game_date", { ascending: false }).limit(1));
     const l = rows[0];
     const own = new Set(mine.map((p) => p.id));
-    S.lineup = { date: d, starters: (l?.starters || []).filter((x) => own.has(x)), bench: (l?.bench || []).filter((x) => own.has(x)), captain: l && l.game_date === d ? l.captain : null, savedFor: l?.game_date || null };
+    S.lineup = { date: d, starters: (l?.starters || []).filter((x) => own.has(x)), bench: (l?.bench || []).filter((x) => own.has(x)), captains: ((l?.captains?.length ? l.captains : l?.captain ? [l.captain] : [])).filter((x) => own.has(x)), savedFor: l?.game_date || null };
   }
   const L = S.lineup, N = +ro.starters || 5;
   const st = L.starters.map(P), nbc = st.filter((p) => p.court === "BC").length, nfc = st.filter((p) => p.court === "FC").length;
@@ -1117,26 +1134,29 @@ async function formazioneView() {
   // panchina = tutti i non titolari, nell'ordine scelto (conta per i cambi automatici)
   L.bench = [...L.bench.filter((id) => !L.starters.includes(id) && mine.some((p) => p.id === id)),
     ...mine.filter((p) => !L.starters.includes(p.id) && !L.bench.includes(p.id)).sort((a, b) => estFp(b.id) - estFp(a.id)).map((p) => p.id)];
-  let live = new Map(), liveTot = null;
+  if (!L.captains.length && L.starters.length) L.captains = [...L.starters, ...L.bench].sort((a, b) => (L.starters.includes(b) - L.starters.includes(a)) || estFp(b) - estFp(a)).slice(0, 5);
+  const capNeed = Math.min(+(R().captain || {}).min_list || 5, mine.length);
+  let live = new Map(), liveTot = null, liveCap = null;
   if (locked) {
     const lc = (formazioneView.lc ||= {});
     if (!lc[d] || Date.now() - lc[d].at > 60000) lc[d] = { at: Date.now(), rows: await q(sb.from("team_scores").select("points,detail").eq("team_id", S.sess.team_id).eq("game_date", d)) };
     const ts = lc[d].rows;
-    if (ts[0]) { liveTot = +ts[0].points || 0; for (const x of ts[0].detail || []) live.set(x.id, x.pts); }
+    if (ts[0]) { liveTot = +ts[0].points || 0; for (const x of ts[0].detail || []) { live.set(x.id, x.pts); if (x.captain) liveCap = x.id; } }
   }
   const cap = R().captain || {}, mult = +cap.multiplier || 2;
-  const est = L.starters.reduce((a, id) => a + estFp(id), 0) + (cap.enabled && L.captain ? (mult - 1) * estFp(L.captain) : 0);
+  const capNow = L.captains.find((id) => L.starters.includes(id) && opp.get(P(id).team_abbr)) || null; // chi farebbe da capitano stasera
+  const est = L.starters.reduce((a, id) => a + estFp(id), 0) + (cap.enabled && capNow ? (mult - 1) * estFp(capNow) : 0);
   const playing = L.starters.filter((id) => opp.get(P(id).team_abbr)).length;
   const sel = locked ? null : S.luSel;
   const status = (p, o) => !o || /out|suspension/i.test(p.injury_status || "") ? "bad" : p.injury_status ? "warn" : "";
   const ordered = L.starters.map(P).sort((a, b) => (a.court === b.court ? 0 : a.court === "FC" ? -1 : 1) || estFp(b.id) - estFp(a.id));
   const POS = [[50, 2], [22, 34], [78, 34], [28, 66], [72, 66], [50, 66], [50, 34]];
   const card = (p, i) => {
-    const [x, y] = POS[i] || POS[POS.length - 1], o = opp.get(p.team_abbr), c = L.captain === p.id;
+    const [x, y] = POS[i] || POS[POS.length - 1], o = opp.get(p.team_abbr), ci = L.captains.indexOf(p.id), c = ci >= 0, eff = locked ? liveCap === p.id : capNow === p.id;
     const a = locked ? `<div><b>${live.has(p.id) ? r1(live.get(p.id)) : "–"}</b><small>PUNTI</small></div>` : `<div><b>${r1(estFp(p.id))}</b><small>MEDIA</small></div>`;
     const b = o ? `<div><b class="sm">${esc(o.s)}</b><small>${fmtTime(o.t)}</small></div>` : `<div><b class="sm" style="color:#C2342B">riposa</b><small>NON GIOCA</small></div>`;
     return `<div class="pc ${sel === p.id ? "sel" : ""}" style="left:${x}%;top:${y}%">
-      ${cap.enabled ? (locked ? (c ? '<span class="pcap on">C</span>' : "") : `<button class="pcap ${c ? "on" : ""}" data-cap="${p.id}" aria-label="Capitano ${esc(p.name)}">C</button>`) : ""}
+      ${cap.enabled ? (locked ? (c ? `<span class="pcap ${eff ? "on" : "lst"}">C${ci + 1}</span>` : "") : `<button class="pcap ${eff ? "on" : c ? "lst" : ""}" data-cap="${p.id}" aria-label="Capitano ${esc(p.name)}">${c ? "C" + (ci + 1) : "C"}</button>`) : ""}
       ${locked ? "" : `<button class="px" data-lu-out="${p.id}" aria-label="Manda ${esc(p.name)} in panchina">×</button>`}
       <button class="ph" data-lu-pick="${p.id}" style="border-color:${teamCol(p)}" aria-label="${esc(p.name)}">${headImg(p)}</button>
       <button class="pcard" data-lu-pick="${p.id}"><div class="n"><i class="${(p.court || "").toLowerCase()}">${p.court}</i>${esc(shortName(p.name))}</div><div class="r">${a}${b}</div><div class="bar ${status(p, o)}"></div></button></div>`;
@@ -1145,12 +1165,23 @@ async function formazioneView() {
   const benchItem = (id, i) => { const p = P(id), o = opp.get(p.team_abbr);
     return `<button class="bp ${sel === id ? "sel" : ""}" data-lu-pick="${id}"><span class="bn">${i + 1}</span><span class="ph" style="border-color:${teamCol(p)}">${headImg(p, 120)}</span>${p.injury_status ? `<span class="bi ${status(p, o) || "warn"}"></span>` : ""}
       <div class="nm">${esc(shortName(p.name))}</div><div class="sm">${p.court} · ${o ? esc(o.s) : '<span style="color:#FF6B61">riposa</span>'}</div></button>`; };
+  const capBox = () => {
+    const rest = mine.filter((p) => !L.captains.includes(p.id)).sort((a, b) => (L.starters.includes(b.id) - L.starters.includes(a.id)) || estFp(b.id) - estFp(a.id));
+    const few = L.captains.length < capNeed;
+    return `<div class="lu-caps"><div class="t"><span>CAPITANI IN ORDINE · ×${mult}</span><span class="${few ? "bad" : "ok"}">${L.captains.length}/${capNeed}${few ? " minimo" : " ✓"}</span></div>
+      <p class="why">Il capitano fa punti ×${mult}. Scegli <b>almeno ${capNeed} capitani in ordine</b>: stanotte vale il <b>primo che gioca davvero</b>. Se C1 non gioca passa a C2, poi a C3… La lista resta valida anche le sere dopo, finché non la cambi: così il capitano c'è sempre.</p>
+      ${L.captains.map((id, i) => { const p = P(id), o = opp.get(p.team_abbr), isS = L.starters.includes(id), e = locked ? liveCap === id : capNow === id;
+        return `<div class="cr ${e ? "on" : ""}"><span class="cn">C${i + 1}</span><span class="ph sm" style="border-color:${teamCol(p)}">${headImg(p, 80)}</span>
+          <div class="cx"><b>${esc(shortName(p.name))}</b><small>${isS ? "titolare" : "panchina"} · ${o ? esc(o.s) : '<span style="color:#FF6B61">non gioca</span>'}${e ? ' · <span style="color:#FFD23F">capitano stanotte</span>' : ""}</small></div>
+          ${locked ? "" : `<button data-capmv="${id}" data-dir="-1" ${i ? "" : "disabled"} aria-label="Su">↑</button><button data-capmv="${id}" data-dir="1" ${i < L.captains.length - 1 ? "" : "disabled"} aria-label="Giù">↓</button><button data-cap="${id}" aria-label="Togli">✕</button>`}</div>`; }).join("")}
+      ${locked || !rest.length ? "" : `<div class="add"><span>Aggiungi:</span>${rest.map((p) => `<button data-cap="${p.id}">+ ${esc(shortName(p.name))}</button>`).join("")}</div>`}</div>`;
+  };
   const warn = !okCount ? `Mancano ${N - L.starters.length} titolar${N - L.starters.length > 1 ? "i" : "e"}` : !okMix ? `Servono almeno ${ro.min_bc_start} BC e ${ro.min_fc_start} FC` : "";
   const hint = locked ? "🔒 Giornata iniziata: quintetto bloccato" : !sel && !warn && L.dirty ? "Modifiche non salvate: salva in fondo ↓" : sel ? (L.starters.includes(sel) ? "Ora tocca un panchinaro per farlo entrare al suo posto" : "Ora tocca il titolare da far uscire o un posto libero") : warn;
   const court = `<section class="lu">
     <div class="lu-stats">
       ${locked ? `<div><b>${liveTot == null ? "–" : r1(liveTot)}</b><small>punti stanotte</small></div>` : `<div><b>${r1(est)}</b><small>pt stimati</small></div>`}
-      <div><b class="${L.captain ? "y" : ""}">${cap.enabled ? (L.captain ? "★ " + esc(shortName(P(L.captain).name)) : "—") : "no"}</b><small>capitano ×${mult}</small></div>
+      <div><b class="${(locked ? liveCap : capNow) ? "y" : ""}">${cap.enabled ? ((locked ? liveCap : capNow) ? "★ " + esc(shortName(P(locked ? liveCap : capNow).name)) : "—") : "no"}</b><small>capitano ×${mult}</small></div>
       <div><b class="${okCount && okMix ? "g" : "r"}">${playing}/${N}</b><small>giocano</small></div>
     </div>
     ${hint ? `<div class="lu-hint ${warn && !sel && !locked ? "bad" : ""}">${hint}</div>` : ""}
@@ -1159,6 +1190,7 @@ async function formazioneView() {
     </div>
     <div class="lu-bench"><div class="t"><span>PANCHINA · 0 PUNTI</span><span>${locked ? "" : "1 = primo cambio"}</span></div>
       <div class="row-b">${L.bench.map(benchItem).join("") || '<span style="color:#8C97A6;padding:6px 0">Tutti in campo</span>'}</div></div>
+    ${cap.enabled ? capBox() : ""}
     <div class="lu-save">${locked ? "" : L.dirty || L.savedFor !== d
       ? `<button class="btn primary" style="width:100%;min-height:50px;font:900 1.25rem var(--display);letter-spacing:.04em" data-act="save-lineup" ${!d ? "disabled" : ""}>SALVA QUINTETTO</button>`
       : `<div style="text-align:center;color:#3DD68C;font-weight:800">✓ Salvato per ${fmtDay(d)}</div>`}</div>
@@ -1173,7 +1205,7 @@ async function formazioneView() {
   <div class="stack">
     ${injBox}
     <div class="daypick">${upcoming.map((x) => `<button class="btn small ${x === d ? "primary" : ""}" data-lday="${x}">${fmtDay(x)}</button>`).join("")}</div>
-    ${L.savedFor && L.savedFor !== d ? `<p class="muted" style="margin:0">Ti mostro il quintetto salvato per ${fmtDay(L.savedFor)}: se non cambi nulla resta valido anche oggi. Il capitano va scelto ogni volta.</p>` : ""}
+    ${L.savedFor && L.savedFor !== d ? `<p class="muted" style="margin:0">Ti mostro il quintetto salvato per ${fmtDay(L.savedFor)}: se non cambi nulla resta valido anche oggi, capitani compresi.</p>` : ""}
     ${court}
     <p class="muted" style="margin:0">Tocca un giocatore e poi un altro per scambiarli. Se un titolare non gioca, entra il primo panchinaro dello stesso reparto (1, poi 2…).</p>
 
@@ -1577,7 +1609,7 @@ function regoleView() {
       <div class="rgrid">${au.start_from_value === false ? tile(au.base_price, "prezzo base") : tile("= quot.", "si parte dalla quotazione")}${tile("+" + au.reset_seconds + "s", "dopo ogni rilancio")}</div>`)}
     ${sec("Quintetto ogni sera", `<div class="court"><div class="slots" style="justify-content:center">${slots(+ro.min_bc_start || 2, "bc", "BC")}${slots(+ro.min_fc_start || 2, "fc", "FC")}${slots(Math.max(0, (+ro.starters || 5) - (+ro.min_bc_start || 2) - (+ro.min_fc_start || 2)), "any", "?")}</div>
       <div class="muted" style="text-align:center;font-size:.8rem;margin-top:6px">${ro.starters} titolari · almeno ${ro.min_bc_start} BC e ${ro.min_fc_start} FC</div></div>
-      <div class="rgrid">${cap.enabled ? tile("★ ×" + cap.multiplier, "capitano") + tile(cap.per_week, "a settimana") : ""}${tile("1ª", "partita della sera: si chiude")}</div>
+      <div class="rgrid">${cap.enabled ? tile("★ ×" + cap.multiplier, "capitano ogni sera") + tile("C1→C" + (cap.min_list || 5), "se il primo non gioca, passa al dopo") : ""}${tile("1ª", "partita della sera: si chiude")}</div>
       <div class="court" style="display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:center;text-align:center">
         <div><div class="tile" style="background:var(--surface)"><div class="n num">0</div><div class="t">punti in panchina</div></div></div>
         <div class="arr" style="font-weight:800;color:var(--muted)">ma</div>
@@ -1640,7 +1672,7 @@ const RULE_FIELDS = [
   ["Bonus", [["bonus.double_double", "Doppia doppia"], ["bonus.triple_double", "Tripla doppia"]]],
   ["Rosa e quintetto", [["roster.size", "Giocatori in rosa"], ["roster.bc", "Di cui back court"], ["roster.fc", "Di cui front court"], ["roster.starters", "Titolari"], ["roster.min_bc_start", "Min BC titolari"], ["roster.min_fc_start", "Min FC titolari"], ["roster.max_per_nba_team", "Max per squadra NBA"]]],
   ["Crediti e asta", [["credits", "Crediti a testa"], ["auction.timer_seconds", "Timer chiamata (sec)"], ["auction.reset_seconds", "Tempo minimo dopo un rilancio (sec)"], ["auction.base_price", "Prezzo base"], ["auction.start_from_value", "Si parte dalla quotazione", "bool"], ["auction.min_increment", "Rilancio minimo"], ["auction.turn_order", "Chiamate a turno", "bool"]]],
-  ["Capitano e mercato", [["captain.enabled", "Capitano attivo", "bool"], ["captain.multiplier", "Moltiplicatore capitano"], ["captain.per_week", "Capitani a settimana"], ["market.release_pct", "Rilascio: % della quotazione"], ["market.injury_out_discount", "Sconto quotazione se Out (%)"], ["market.blend_games", "Partite per pesare solo la stagione in corso"]]],
+  ["Capitano e mercato", [["captain.enabled", "Capitano attivo", "bool"], ["captain.multiplier", "Moltiplicatore capitano"], ["captain.min_list", "Capitani minimi in lista"], ["market.release_pct", "Rilascio: % della quotazione"], ["market.injury_out_discount", "Sconto quotazione se Out (%)"], ["market.blend_games", "Partite per pesare solo la stagione in corso"]]],
   ["Playoff", [["playoffs.teams", "Squadre ai playoff"], ["playoffs.days_per_round", "Giornate per turno"]]],
 ];
 const getPath = (o, p) => p.split(".").reduce((a, k) => a?.[k], o);
@@ -1699,18 +1731,18 @@ function bindCommon() {
       if (d.lu) {
         const L = S.lineup, id = d.id, N = +(R().roster || {}).starters || 5;
         if (d.lu === "s") {
-          if (L.starters.includes(id)) { L.starters = L.starters.filter((x) => x !== id); if (L.captain === id) L.captain = null; }
+          if (L.starters.includes(id)) { L.starters = L.starters.filter((x) => x !== id); }
           else { if (L.starters.length >= N) return toast(`Hai già ${N} titolari: togline uno prima`, true); L.starters.push(id); L.bench = L.bench.filter((x) => x !== id); }
         } else {
           if (L.bench.includes(id)) L.bench = L.bench.filter((x) => x !== id);
-          else { L.bench.push(id); L.starters = L.starters.filter((x) => x !== id); if (L.captain === id) L.captain = null; }
+          else { L.bench.push(id); L.starters = L.starters.filter((x) => x !== id); }
         }
         L.dirty = true; return render();
       }
       if (d.luPick || d.luOut || d.luSlot) {
         const L = S.lineup; if (!L) return;
-        const swapIn = (inId, outId) => { const i = L.starters.indexOf(outId), j = L.bench.indexOf(inId); L.starters[i] = inId; L.bench[j] = outId; if (L.captain === outId) L.captain = null; };
-        if (d.luOut) { L.starters = L.starters.filter((x) => x !== d.luOut); L.bench.push(d.luOut); if (L.captain === d.luOut) L.captain = null; S.luSel = null; L.dirty = true; return render(); }
+        const swapIn = (inId, outId) => { const i = L.starters.indexOf(outId), j = L.bench.indexOf(inId); L.starters[i] = inId; L.bench[j] = outId; };
+        if (d.luOut) { L.starters = L.starters.filter((x) => x !== d.luOut); L.bench.push(d.luOut); S.luSel = null; L.dirty = true; return render(); }
         if (d.luSlot) {
           if (!S.luSel || L.starters.includes(S.luSel)) return toast("Prima tocca un giocatore della panchina");
           L.starters.push(S.luSel); L.bench = L.bench.filter((x) => x !== S.luSel); S.luSel = null; L.dirty = true; return render();
@@ -1723,7 +1755,8 @@ function bindCommon() {
         else if (aS) swapIn(id, a); else swapIn(a, id);
         S.luSel = null; L.dirty = true; return render();
       }
-      if (d.cap) { S.lineup.captain = S.lineup.captain === d.cap ? null : d.cap; S.lineup.dirty = true; return render(); }
+      if (d.cap) { const C = S.lineup.captains, i = C.indexOf(d.cap); i >= 0 ? C.splice(i, 1) : C.push(d.cap); S.lineup.dirty = true; return render(); }
+      if (d.capmv) { const C = S.lineup.captains, i = C.indexOf(d.capmv), j = i + +d.dir; if (i < 0 || j < 0 || j >= C.length) return; [C[i], C[j]] = [C[j], C[i]]; S.lineup.dirty = true; return render(); }
       if (d.court !== undefined) { S.court = d.court; S.page = 0; return render(); }
       if (d.nom) { await rpc("auction_nominate", { p_token: tok, p_player: d.nom, p_start: startOf(d.nom) }); return; }
       if (d.bid) { await rpc("auction_bid", { p_token: tok, p_amount: +d.bid }); return; }
@@ -1787,7 +1820,9 @@ function bindCommon() {
         case "set-turn": await rpc("admin_auction", { p_token: tok, p_action: "set_turn", p_team: $("#turn-sel").value }); toast("Turno aggiornato"); break;
         case "save-lineup": {
           const L = S.lineup;
-          await rpc("set_lineup", { p_token: tok, p_date: L.date, p_starters: L.starters, p_bench: L.bench, p_captain: L.captain });
+          const capOn = (R().captain || {}).enabled, need = Math.min(+(R().captain || {}).min_list || 5, rosterOf(S.sess.team_id).length);
+          if (capOn && L.captains.length < need) return toast(`Scegli almeno ${need} capitani in ordine`, true);
+          await rpc("set_lineup", { p_token: tok, p_date: L.date, p_starters: L.starters, p_bench: L.bench, p_captain: L.captains[0] || null, p_captains: capOn ? L.captains : [] });
           L.savedFor = L.date; L.dirty = false; S.myStarters = [...L.starters]; toast("Quintetto salvato per " + fmtDay(L.date)); render(); break;
         }
         case "release": {
