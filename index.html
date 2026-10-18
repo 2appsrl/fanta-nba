@@ -272,6 +272,23 @@ details>summary::-webkit-details-marker{display:none}
 .entry .tabsel{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.1);padding:4px;border-radius:999px}
 .entry .tabsel button{border:0;background:transparent;color:#fff;font-weight:700;padding:10px 4px;border-radius:999px;min-height:44px;cursor:pointer;font-size:.95rem}
 .entry .tabsel button.on{background:linear-gradient(180deg,#ff8a3a,#e8520e);box-shadow:0 4px 16px rgba(232,82,14,.5)}
+.hcar{position:relative;z-index:2;overflow:hidden;width:100vw;margin:0 0 18px calc(50% - 50vw);padding:18px 0 14px;-webkit-mask-image:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent);mask-image:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent)}
+.hcar .run{display:flex;gap:18px;width:max-content;animation:hcrun var(--dur,50s) linear infinite}
+.hcar:hover .run{animation-play-state:paused}
+@keyframes hcrun{to{transform:translateX(calc(-50% - 9px))}}
+.hc{flex:none;width:128px;text-align:center;transform:rotate(var(--r))}
+.hc .ph{display:block;width:80px;height:80px;margin:0 auto;border-radius:50%;border:3px solid #fff;background:#121820;overflow:hidden;box-shadow:0 10px 22px rgba(0,0,0,.6)}
+.hc .ph img{width:100%;height:100%;object-fit:cover;object-position:50% 12%;display:block}
+.hc .pc2{margin-top:-10px;position:relative;background:#121820;border-radius:9px;overflow:hidden;box-shadow:0 10px 22px rgba(0,0,0,.6);color:#fff}
+.hc .n{font:800 16px var(--display);padding:6px 4px 4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hc .n i{font-style:normal;font-size:11px;padding:1px 4px;border-radius:3px;margin-right:4px;vertical-align:2px}
+.hc .n i.bc{background:#6EA1FF;color:#08142c}.hc .n i.fc{background:#FF9A5C;color:#2a1103}
+.hc .r{display:grid;grid-template-columns:1fr 1fr;background:#fff;color:#121820}
+.hc .r div{padding:5px 0 4px;line-height:1}
+.hc .r b{font:900 18px var(--display)}
+.hc .r small{display:block;font:800 8.5px var(--body);color:#5A6676;letter-spacing:.04em;margin-top:2px}
+.hc .bar{height:3px;background:#3DD68C}
+@media (prefers-reduced-motion:reduce){.hcar .run{animation:none}.hcar{overflow-x:auto}}
 .entry .foot{color:rgba(255,255,255,.75);font-size:.85rem;display:flex;align-items:center;justify-content:center;gap:10px;margin-top:16px;text-shadow:0 1px 6px rgba(0,0,0,.8)}
 .entry .foot::before,.entry .foot::after{content:"";height:1px;width:40px;background:rgba(255,255,255,.25)}
 .entry .bars{display:inline-flex;align-items:flex-end;gap:2px;height:14px}
@@ -887,6 +904,21 @@ function startArena() {
 }
 
 const default_rules_sc = [["+1", "PTS"], ["+1", "REB"], ["+2", "AST"], ["+3", "STL"], ["+3", "BLK"]];
+// carosello della home: i migliori giocatori della stagione scorsa (regole base)
+const BASE_RULES = { scoring: { pts: 1, reb: 1, ast: 2, stl: 3, blk: 3, tov: -1 } };
+function homeCarousel() {
+  if (!homeCarousel.list) {
+    const top = [...S.players.values()].filter((p) => p.active && p.team_abbr && p.headshot && (S.last.get(p.id)?.gp || 0) >= 20)
+      .map((p) => ({ p, fp: fpFrom(S.last.get(p.id), BASE_RULES), pts: +S.last.get(p.id).pts || 0 })).sort((a, b) => b.fp - a.fp).slice(0, 16);
+    if (top.length < 6) return "";
+    homeCarousel.list = top;
+  }
+  const one = homeCarousel.list.map(({ p, fp, pts }, i) => `<div class="hc" style="--r:${i % 2 ? 3 : -3}deg">
+      <span class="ph" style="border-color:${teamCol(p)}">${headImg(p)}</span>
+      <div class="pc2"><div class="n"><i class="${(p.court || "").toLowerCase()}">${p.court}</i>${esc(shortName(p.name))}</div>
+      <div class="r"><div><b>${r1(fp)}</b><small>MEDIA FANTA</small></div><div><b>${r1(pts)}</b><small>PUNTI ${esc(p.team_abbr)}</small></div></div><div class="bar"></div></div></div>`).join("");
+  return `<div class="hcar" aria-hidden="true"><div class="run" style="--dur:${homeCarousel.list.length * 3.2}s">${one}${one}</div></div>`;
+}
 function loginView() {
   const f = (id, label, type = "text", extra = "") => `<label class="field"><span class="label">${label}</span><input id="${id}" type="${type}" ${extra}></label>`;
   const forms = {
@@ -914,6 +946,7 @@ function loginView() {
     <div class="hero">
       <h1 class="logo" aria-label="NBA Dream League"><span class="w">NBA</span><span class="o"><span>Dream</span></span><span class="l">League</span></h1>
       <p class="tag">La tua lega. Le tue scelte. Ogni notte conta.</p></div>
+    ${homeCarousel()}
     <section class="glass stack">
       <div class="tabsel">${["accedi:Accedi", "entra:Ho un codice", "crea:Crea lega"].map((x) => { const [k, l] = x.split(":"); return `<button class="${loginMode === k ? "on" : ""}" data-mode="${k}">${l}</button>`; }).join("")}</div>
       <div class="stack" id="login-form">${forms[loginMode]}</div>
