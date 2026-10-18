@@ -39,6 +39,21 @@
 
 *{box-sizing:border-box}
 [hidden]{display:none!important}
+/* barra classifica che scorre (stile TV) */
+.tk{position:sticky;top:0;z-index:40;background:linear-gradient(90deg,#E35A12,#FF7A2E);color:#fff;font-family:var(--display);font-size:15px;padding-top:env(safe-area-inset-top,0px);cursor:pointer;-webkit-tap-highlight-color:transparent;box-shadow:0 2px 8px rgba(0,0,0,.12)}
+.tk .bar{position:relative;height:34px;overflow:hidden}
+.tk .lab{position:absolute;left:0;top:0;bottom:0;z-index:2;background:#121820;padding:0 10px;display:flex;align-items:center;gap:6px;font-weight:900;letter-spacing:.08em;font-size:14px;box-shadow:6px 0 10px rgba(0,0,0,.25)}
+.tk .lab i{width:8px;height:8px;border-radius:50%;background:#FF4136;animation:tkbl 1s infinite}
+@keyframes tkbl{50%{opacity:.2}}
+.tk .run{display:inline-flex;height:34px;align-items:center;white-space:nowrap;animation:tkrun var(--dur,30s) linear infinite;will-change:transform}
+@keyframes tkrun{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+.tk .it{display:inline-flex;gap:6px;align-items:center;height:34px;padding:0 12px;border-left:1px solid rgba(255,255,255,.3);font-variant-numeric:tabular-nums}
+.tk .it.me{background:rgba(18,24,32,.3)}
+.tk .it .nm{font-weight:600}
+.tk .pill{background:rgba(0,0,0,.22);border-radius:6px;padding:1px 6px;font-size:13px;font-weight:800}
+.tk .pill.up{background:#13804B}.tk .pill.dn{background:#B3261E}
+@media (prefers-reduced-motion:reduce){.tk .run{animation:none}.tk .bar{overflow-x:auto}}
+body.has-tk .wrap{padding-top:10px}
 html,body{margin:0}
 body{background:var(--bg);color:var(--ink);font:500 15px/1.45 var(--body);
   padding-left:max(0px,env(safe-area-inset-left,0px));padding-right:max(0px,env(safe-area-inset-right,0px));
@@ -252,6 +267,7 @@ details>summary::-webkit-details-marker{display:none}
 </style>
 </head>
 <body>
+<div id="ticker" class="tk" hidden role="button" aria-label="Classifica: tocca per aprirla"></div>
 <div id="app" class="wrap"><div class="empty">Caricamento…</div></div>
 <nav class="tabs" id="tabs" hidden><div class="in">
   <button class="tab" data-tab="oggi">Oggi</button>
@@ -299,7 +315,7 @@ const now = () => Date.now() + clockOffset;
 const S = {
   sess: store.get("fantanba.sess"),
   tab: ({ mercato: "asta" })[store.get("fantanba.tab")] || store.get("fantanba.tab") || "oggi",
-  league: null, teams: [], roster: [], auction: null, bids: [], standings: [],
+  league: null, teams: [], roster: [], auction: null, bids: [], standings: [], trend: [], tkLive: false,
   players: new Map(), last: new Map(), cur: new Map(), values: new Map(),
   mk: { give: [], get: [], tradeTo: "", givec: 0, getc: 0, msg: "", fa: null, faAmt: "", faDrop: "", rel: null, newTrade: false, faSearch: "", faCourt: "", faBand: "", faPage: 0 },
   day: null, lineupDate: null, lineup: null, openMatch: null,
@@ -459,7 +475,51 @@ async function loadLeague() {
   S.league = lg; S.teams = teams; S.roster = roster; S.auction = auction; S.standings = st;
   S.values = new Map(vals.map((v) => [v.player_id, v]));
   try { S.favs = new Set(await rpc("my_favorites", { p_token: S.sess.token })); } catch {}
+  await loadTrend();
 }
+// dati della barra: punti totali + ultima serata per squadra, e se ci sono partite in corso
+async function loadTrend() {
+  try {
+    const [t, g] = await Promise.all([
+      q(sb.from("team_trend").select("*").eq("league_id", S.sess.league_id)),
+      q(sb.from("games").select("id").eq("state", "in").limit(1)),
+    ]);
+    S.trend = t; S.tkLive = g.length > 0;
+  } catch {}
+}
+const fmt1 = (n) => (+n || 0).toLocaleString("it-IT", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+function renderTicker() {
+  const el = $("#ticker");
+  if (!S.sess || !S.league || S.teams.length < 2) { el.hidden = true; document.body.classList.remove("has-tk"); return; }
+  const tr = new Map(S.trend.map((x) => [x.team_id, x]));
+  const byName = (a, b) => a.name.localeCompare(b.name);
+  let items, label;
+  if (!S.trend.length) {
+    // prima della stagione: crediti rimasti e giocatori presi
+    label = "CREDITI";
+    const size = +(R().roster || {}).size || 10;
+    items = [...S.teams].map((t) => ({ t, rk: "", main: credits(t.id) + " cr", pill: rosterOf(t.id).length + "/" + size, cls: "" }));
+  } else if (S.league.mode === "h2h") {
+    label = S.tkLive ? "<i></i>LIVE" : "CLASSIFICA";
+    const st = new Map(S.standings.map((x) => [x.team_id, x]));
+    const rows = [...S.teams].sort((a, b) => { const x = st.get(a.id) || {}, y = st.get(b.id) || {}; return ((y.wins || 0) - (y.losses || 0)) - ((x.wins || 0) - (x.losses || 0)) || (+y.total_points || 0) - (+x.total_points || 0) || byName(a, b); });
+    items = rows.map((t, i) => { const x = st.get(t.id) || {}, l = +(tr.get(t.id)?.last_pts || 0);
+      return { t, rk: i + 1 + "°", main: `${x.wins || 0}-${x.losses || 0}`, pill: (l > 0 ? "+" : "") + fmt1(l), cls: "" }; });
+  } else {
+    label = S.tkLive ? "<i></i>LIVE" : "CLASSIFICA";
+    const tot = (t) => +(tr.get(t.id)?.total || 0), prev = (t) => tot(t) - +(tr.get(t.id)?.last_pts || 0);
+    const now = [...S.teams].sort((a, b) => tot(b) - tot(a) || byName(a, b));
+    const before = [...S.teams].sort((a, b) => prev(b) - prev(a) || byName(a, b)).map((t) => t.id);
+    items = now.map((t, i) => { const mv = before.indexOf(t.id) - i;
+      return { t, rk: i + 1 + "°", main: fmt1(tot(t)), pill: mv > 0 ? "▲" + mv : mv < 0 ? "▼" + -mv : "=", cls: mv > 0 ? "up" : mv < 0 ? "dn" : "" }; });
+  }
+  const one = items.map((x) => `<span class="it ${x.t.id === S.sess.team_id ? "me" : ""}">${teamLogo(x.t, 20)}${x.rk ? `<b>${x.rk}</b>` : ""}<span class="nm">${esc(x.t.name)}</span><b>${x.main}</b><span class="pill ${x.cls}">${x.pill}</span></span>`).join("");
+  const html = `<div class="bar"><span class="lab">${label}</span><div class="run" style="--dur:${Math.max(16, items.length * 4)}s;padding-left:0">${one}${one}</div></div>`;
+  if (el.dataset.k !== html) { el.innerHTML = html; el.dataset.k = html; }
+  el.hidden = false; document.body.classList.add("has-tk");
+}
+setInterval(async () => { if (S.sess && S.league && !document.hidden) { await loadTrend(); renderTicker(); } }, 180000);
+$("#ticker").addEventListener("click", () => { if (!S.league) return; S.tab = "classifica"; store.set("fantanba.tab", S.tab); render(); window.scrollTo(0, 0); });
 async function loadBids() {
   const a = S.auction; if (!a?.player_id) { S.bids = []; return; }
   S.bids = await q(sb.from("bids").select("*").eq("league_id", S.sess.league_id).eq("player_id", a.player_id).gte("created_at", a.opened_at || "1970-01-01").order("id", { ascending: false }).limit(15));
@@ -495,7 +555,7 @@ function subscribe() {
     .on("postgres_changes", { event: "*", schema: "public", table: "transactions", filter: f }, () => soon(async () => { if (S.tab === "asta") render(); }))
     .on("postgres_changes", { event: "*", schema: "public", table: "market_windows", filter: f }, () => soon(async () => { if (S.tab === "asta") render(); }))
     .on("postgres_changes", { event: "*", schema: "public", table: "player_values", filter: f }, () => soon(async () => { const v = await q(sb.from("player_values").select("player_id,value,fp").eq("league_id", id).limit(2000)); S.values = new Map(v.map((x) => [x.player_id, x])); if (S.tab === "asta") render(); }))
-    .on("postgres_changes", { event: "*", schema: "public", table: "team_scores", filter: f }, () => soon(async () => { S.standings = await q(sb.from("standings").select("*").eq("league_id", id)); if (S.tab === "oggi" || S.tab === "classifica") render(); }))
+    .on("postgres_changes", { event: "*", schema: "public", table: "team_scores", filter: f }, () => soon(async () => { S.standings = await q(sb.from("standings").select("*").eq("league_id", id)); await loadTrend(); renderTicker(); if (S.tab === "oggi" || S.tab === "classifica") render(); }))
     .subscribe();
 }
 
@@ -549,6 +609,7 @@ render.seq = 0;
 async function render() {
   renderTabs();
   const app = $("#app");
+  renderTicker();
   if (!S.sess || !S.league) { app.innerHTML = loginView(); bindLogin(); return; }
   // solo l'ultima richiesta di disegno vince: evita che una scheda lenta copra quella scelta dopo
   const ticket = ++render.seq;
