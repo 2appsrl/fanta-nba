@@ -570,10 +570,24 @@ async function loadLeague() {
   S.values = new Map(vals.map((v) => [v.player_id, v]));
   try { S.favs = new Set(await rpc("my_favorites", { p_token: S.sess.token })); } catch {}
   await loadTrend();
-  await loadTradeBadge();
+  await loadTradeBadge(!loadLeague.done); loadLeague.done = true;
 }
-async function loadTradeBadge() {
-  try { const r = await q(sb.from("trades").select("id").eq("to_team", S.sess.team_id).eq("status", "pending")); S.tradeIn = r.length; } catch {}
+// esiti delle MIE proposte non ancora visti (accettate/rifiutate mentre ero fuori)
+const trSeenKey = () => "fantanba.trseen." + S.sess.team_id;
+const trSeen = () => store.get(trSeenKey()) || new Date(Date.now() - 3 * 864e5).toISOString();
+async function loadTradeBadge(first = false) {
+  try {
+    const [r, news] = await Promise.all([
+      q(sb.from("trades").select("id").eq("to_team", S.sess.team_id).eq("status", "pending")),
+      q(sb.from("trades").select("*").eq("from_team", S.sess.team_id).in("status", ["accepted", "rejected", "failed"]).gt("resolved_at", trSeen()).order("resolved_at", { ascending: false })),
+    ]);
+    S.tradeIn = r.length; S.tradeNews = news;
+    if (first && news.length) setTimeout(() => toast(news.length === 1 ? tradeNewsText(news[0]) : `${news.length} novità sui tuoi scambi: guarda in Trade`), 1200);
+  } catch {}
+}
+function tradeNewsText(x) {
+  const who = teamName(x.to_team);
+  return x.status === "accepted" ? `✅ ${who} ha accettato il tuo scambio` : x.status === "rejected" ? `❌ ${who} ha rifiutato il tuo scambio` : `⚠️ Il tuo scambio con ${who} non è andato a buon fine`;
 }
 // dati della barra: punti totali + ultima serata per squadra, e se ci sono partite in corso
 async function loadTrend() {
@@ -653,7 +667,8 @@ function subscribe() {
     .on("postgres_changes", { event: "*", schema: "public", table: "roster", filter: f }, () => soon(async () => { S.roster = await q(sb.from("roster").select("*").eq("league_id", id).not("team_id", "is", null)); render(); }))
     .on("postgres_changes", { event: "*", schema: "public", table: "teams", filter: f }, () => soon(async () => { await loadLeague(); render(); }))
     .on("postgres_changes", { event: "UPDATE", schema: "public", table: "leagues", filter: `id=eq.${id}` }, () => soon(async () => { await loadLeague(); render(); }))
-    .on("postgres_changes", { event: "*", schema: "public", table: "trades", filter: f }, (p) => { if (p.new?.to_team === S.sess.team_id && p.new.status === "pending") toast("Nuova proposta di scambio da " + teamName(p.new.from_team)); soon(async () => { await loadTradeBadge(); renderTabs(); }, "trbadge"); soon(() => { if (S.tab === "asta") render(); else renderTabs(); }); })
+    .on("postgres_changes", { event: "*", schema: "public", table: "trades", filter: f }, (p) => { if (p.new?.to_team === S.sess.team_id && p.new.status === "pending") toast("Nuova proposta di scambio da " + teamName(p.new.from_team));
+      if (p.new?.from_team === S.sess.team_id && p.old?.status !== p.new.status && ["accepted", "rejected", "failed"].includes(p.new.status)) { toast(tradeNewsText(p.new), p.new.status !== "accepted"); try { navigator.vibrate?.(120); } catch {} soon(async () => { await reloadRoster(); }, "trroster"); } soon(async () => { await loadTradeBadge(); renderTabs(); }, "trbadge"); soon(() => { if (S.tab === "asta") render(); else renderTabs(); }); })
     .on("postgres_changes", { event: "*", schema: "public", table: "transactions", filter: f }, () => soon(async () => { if (S.tab === "asta") render(); }))
     .on("postgres_changes", { event: "*", schema: "public", table: "market_windows", filter: f }, () => soon(async () => { if (S.tab === "asta") render(); }))
     .on("postgres_changes", { event: "*", schema: "public", table: "player_values", filter: f }, () => soon(async () => { const v = await q(sb.from("player_values").select("player_id,value,fp").eq("league_id", id).limit(2000)); S.values = new Map(v.map((x) => [x.player_id, x])); if (S.tab === "asta") render(); }))
@@ -672,7 +687,7 @@ function renderTabs() {
     b.querySelector(".dot")?.remove();
     b.querySelector(".badge")?.remove();
     if (b.dataset.tab === "asta" && !isTrade() && S.auction?.status === "open" && S.tab !== "asta") b.insertAdjacentHTML("beforeend", '<span class="dot"></span>');
-    if (b.dataset.tab === "asta" && isTrade() && S.tradeIn > 0) b.insertAdjacentHTML("beforeend", `<span class="badge" title="Proposte di scambio da guardare">${S.tradeIn}</span>`);
+    { const nT = (S.tradeIn || 0) + (S.tradeNews?.length || 0); if (b.dataset.tab === "asta" && isTrade() && nT > 0) b.insertAdjacentHTML("beforeend", `<span class="badge" title="Scambi da guardare">${nT}</span>`); }
     if (b.dataset.tab === "formazione" && S.league) {
       const inj = myInjuries(), hot = inj.filter((x) => x.starter).length;
       if (hot) b.insertAdjacentHTML("beforeend", `<span class="badge" title="Titolari infortunati">${hot}</span>`);
@@ -1473,7 +1488,10 @@ async function tradeView() {
       <input id="tr-msg" placeholder="Messaggio (facoltativo)" value="${esc(M.msg)}">
       <div class="muted num" id="tr-sum" style="font-size:.85rem">Quotazioni: dai ${sumv(M.give)} + ${+M.givec || 0} cr · ricevi ${sumv(M.get)} + ${+M.getc || 0} cr</div>
       <button class="btn primary" data-act="send-trade" ${M.give.length && M.get.length && M.tradeTo ? "" : "disabled"}>Invia proposta</button></div>` : "";
+  const newsNow = S.tradeNews || [];
+  if (newsNow.length) { store.set(trSeenKey(), new Date().toISOString()); S.tradeNews = []; setTimeout(renderTabs, 0); }
   const tradesBox = `<section class="card stack"><div class="row between"><div class="label">Scambi</div><button class="btn small" data-act="new-trade">${M.newTrade ? "Chiudi" : "Nuova proposta"}</button></div>
+    ${newsNow.map((x) => `<div class="stack" style="gap:6px;border-radius:10px;padding:10px 12px;background:${x.status === "accepted" ? "rgba(19,128,75,.12)" : "rgba(194,52,43,.1)"};border:1px solid ${x.status === "accepted" ? "var(--win)" : "var(--loss)"}"><span class="chip on" style="align-self:flex-start">Novità</span><b>${tradeNewsText(x)}</b>${tradeLine(x)}</div>`).join("")}
     ${inc.map((x) => `<div class="stack" style="border-top:1px solid var(--line);padding-top:10px"><span class="chip on" style="align-self:flex-start">Per te</span>${tradeLine(x)}<div class="row"><button class="btn primary small" data-act="tr-accept" data-tid="${x.id}">Accetta</button><button class="btn small" data-act="tr-reject" data-tid="${x.id}">Rifiuta</button></div></div>`).join("")}
     ${out.map((x) => `<div class="stack" style="border-top:1px solid var(--line);padding-top:10px"><span class="chip" style="align-self:flex-start">In attesa di risposta</span>${tradeLine(x)}<div class="row"><button class="btn small" data-act="tr-cancel" data-tid="${x.id}">Ritira proposta</button></div></div>`).join("")}
     ${!inc.length && !out.length && !M.newTrade ? '<div class="muted">Nessuna proposta in corso. Puoi proporre uno scambio in qualsiasi momento.</div>' : ""}
