@@ -1,6 +1,6 @@
 {
-  "name": "Fanta NBA",
-  "short_name": "Fanta NBA",
+  "name": "NBA Dream League",
+  "short_name": "Dream League",
   "description": "La nostra lega fantasy NBA: asta, quintetto, trade e classifica.",
   "start_url": "./",
   "scope": "./",

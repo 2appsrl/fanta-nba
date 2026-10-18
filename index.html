@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Fanta NBA</title>
+<title>NBA Dream League</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <meta name="theme-color" content="#121820">
 <link rel="manifest" href="manifest.webmanifest">
@@ -12,7 +12,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Fanta NBA">
+<meta name="apple-mobile-web-app-title" content="NBA Dream League">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Big+Shoulders+Display:wght@700;800;900&family=Racing+Sans+One&display=swap">
@@ -257,6 +257,7 @@ details>summary::-webkit-details-marker{display:none}
 .entry .logo{font-family:"Racing Sans One","Arial Black",Impact,sans-serif;font-weight:400;line-height:.86;margin:0;display:flex;flex-direction:column;align-items:center;animation:logoIn .9s cubic-bezier(.2,1.4,.4,1) both}
 .entry .logo .w{font-size:clamp(3.2rem,15vw,6.4rem);color:#fff;text-shadow:0 3px 0 #9aa3ad,0 8px 22px rgba(0,0,0,.6);transform:skewX(-7deg)}
 .entry .logo .o{font-size:clamp(4.2rem,21vw,8.6rem);filter:drop-shadow(0 4px 0 #6a2205) drop-shadow(0 0 26px rgba(255,100,20,.55));transform:skewX(-7deg);margin-top:-.04em}
+.entry .logo .l{font-size:clamp(2rem,9.5vw,4rem);color:#fff;letter-spacing:.14em;text-transform:uppercase;transform:skewX(-7deg);margin-top:.06em;text-shadow:0 3px 0 #9aa3ad,0 8px 22px rgba(0,0,0,.6)}
 .entry .logo .o span{background:linear-gradient(180deg,#ffd27a 0%,#ff8a2a 38%,#f05a10 62%,#b33508 100%);-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent}
 .entry .tag{margin:14px auto 0;color:#f1ece6;font-weight:600;font-size:clamp(1rem,3.6vw,1.3rem);text-shadow:0 2px 10px rgba(0,0,0,.7);animation:fadeUp .8s .25s both}
 .entry .glass{max-width:640px;margin:0 auto;background:rgba(14,14,16,.62);border:1px solid rgba(255,160,90,.28);border-radius:18px;padding:18px;-webkit-backdrop-filter:blur(14px) saturate(1.2);backdrop-filter:blur(14px) saturate(1.2);
@@ -647,7 +648,7 @@ function installTip() {
     <button class="btn small ghost" data-act="no-install" aria-label="Chiudi">✕</button></section>`;
 }
 function head(title, sub) {
-  return `<header class="top"><div style="min-width:0"><div class="brand">FANTA<b>NBA</b></div><div class="who" style="display:flex;align-items:center;gap:6px">${me() ? teamLogo(me(), 20) : ""}<span style="min-width:0;overflow:hidden;text-overflow:ellipsis"><b>${esc(me()?.name || "")}</b> · ${esc(S.league?.name || "")}</span></div></div>
+  return `<header class="top"><div style="min-width:0"><div class="brand">NBA <b>DREAM</b> LEAGUE</div><div class="who" style="display:flex;align-items:center;gap:6px">${me() ? teamLogo(me(), 20) : ""}<span style="min-width:0;overflow:hidden;text-overflow:ellipsis"><b>${esc(me()?.name || "")}</b> · ${esc(S.league?.name || "")}</span></div></div>
   ${S.tab !== "regole" ? `<button class="btn small" data-act="rules">Regole</button>` : ""}</header>
   <h1 style="margin-bottom:${sub ? 8 : 12}px">${title}</h1>${sub ? `<div class="sub">${sub}</div>` : ""}`;
 }
@@ -911,7 +912,7 @@ function loginView() {
     <div class="live" aria-hidden="true"><span class="pill"><i></i>Live season</span>
       <div class="stats">${sc.map(([v, k]) => `<div><b>${v}</b><span>${k}</span></div>`).join("")}</div></div>
     <div class="hero">
-      <h1 class="logo"><span class="w">Fanta</span><span class="o"><span>NBA</span></span></h1>
+      <h1 class="logo" aria-label="NBA Dream League"><span class="w">NBA</span><span class="o"><span>Dream</span></span><span class="l">League</span></h1>
       <p class="tag">La tua lega. Le tue scelte. Ogni notte conta.</p></div>
     <section class="glass stack">
       <div class="tabsel">${["accedi:Accedi", "entra:Ho un codice", "crea:Crea lega"].map((x) => { const [k, l] = x.split(":"); return `<button class="${loginMode === k ? "on" : ""}" data-mode="${k}">${l}</button>`; }).join("")}</div>
@@ -1764,7 +1765,7 @@ function bindCommon() {
         case "release-no": $("#rel-confirm").innerHTML = ""; break;
         case "copy-code": {
           const link = location.href.split(/[?#]/)[0] + "?lega=" + S.league.code;
-          const txt = `Entra nella mia lega Fanta NBA "${S.league.name}"! Apri ${link} , scegli il nome della tua squadra e un PIN.`;
+          const txt = `Entra nella mia lega NBA Dream League "${S.league.name}"! Apri ${link} , scegli il nome della tua squadra e un PIN.`;
           try { await navigator.clipboard.writeText(txt); toast("Invito copiato"); } catch { const r = document.createRange(); r.selectNodeContents($("#code-txt")); getSelection().removeAllRanges(); getSelection().addRange(r); toast("Copia il codice selezionato"); }
           break;
         }

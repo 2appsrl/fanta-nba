@@ -1,4 +1,4 @@
-# Fanta NBA
+# NBA Dream League
 
 Lega fantasy NBA privata tra amici: asta live dal telefono, quintetto ogni sera, sfide quotidiane con playoff oppure classifica a punti.
 
