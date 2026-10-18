@@ -1007,7 +1007,8 @@ function astaView() {
   const myMax = maxBid(S.sess.team_id);
   let board = "";
   if (!open) {
-    board = `<section class="board"><div class="label">Asta</div><div class="mid" style="margin-top:6px">Non ancora aperta</div><p style="opacity:.75;margin-bottom:0">${isAdmin() ? "Aprila dalla scheda Lega quando siete tutti collegati." : "La apre l'admin quando siete tutti pronti."}</p></section>`;
+    board = `<section class="board"><div class="label">Asta</div><div class="mid" style="margin-top:6px">Non ancora aperta</div><p style="opacity:.8;margin:6px 0 0">Intanto studia i giocatori e salva i preferiti con la ★. ${isAdmin() ? "Quando siete tutti pronti aprila dalla scheda Lega." : "Quando l'admin la apre, qui compare il pulsante per chiamare."}</p></section>
+      ${rosterNeedBox()}${nominateBox(true)}`;
   } else if (a.status === "open") {
     const p = P(a.player_id), leading = a.current_team_id === S.sess.team_id;
     const why = canTake(S.sess.team_id, a.player_id);
