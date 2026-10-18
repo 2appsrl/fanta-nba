@@ -570,6 +570,10 @@ async function loadLeague() {
   S.values = new Map(vals.map((v) => [v.player_id, v]));
   try { S.favs = new Set(await rpc("my_favorites", { p_token: S.sess.token })); } catch {}
   await loadTrend();
+  await loadTradeBadge();
+}
+async function loadTradeBadge() {
+  try { const r = await q(sb.from("trades").select("id").eq("to_team", S.sess.team_id).eq("status", "pending")); S.tradeIn = r.length; } catch {}
 }
 // dati della barra: punti totali + ultima serata per squadra, e se ci sono partite in corso
 async function loadTrend() {
@@ -649,7 +653,7 @@ function subscribe() {
     .on("postgres_changes", { event: "*", schema: "public", table: "roster", filter: f }, () => soon(async () => { S.roster = await q(sb.from("roster").select("*").eq("league_id", id).not("team_id", "is", null)); render(); }))
     .on("postgres_changes", { event: "*", schema: "public", table: "teams", filter: f }, () => soon(async () => { await loadLeague(); render(); }))
     .on("postgres_changes", { event: "UPDATE", schema: "public", table: "leagues", filter: `id=eq.${id}` }, () => soon(async () => { await loadLeague(); render(); }))
-    .on("postgres_changes", { event: "*", schema: "public", table: "trades", filter: f }, (p) => { if (p.new?.to_team === S.sess.team_id && p.new.status === "pending") toast("Nuova proposta di scambio da " + teamName(p.new.from_team)); soon(() => { if (S.tab === "asta") render(); else renderTabs(); }); })
+    .on("postgres_changes", { event: "*", schema: "public", table: "trades", filter: f }, (p) => { if (p.new?.to_team === S.sess.team_id && p.new.status === "pending") toast("Nuova proposta di scambio da " + teamName(p.new.from_team)); soon(async () => { await loadTradeBadge(); renderTabs(); }, "trbadge"); soon(() => { if (S.tab === "asta") render(); else renderTabs(); }); })
     .on("postgres_changes", { event: "*", schema: "public", table: "transactions", filter: f }, () => soon(async () => { if (S.tab === "asta") render(); }))
     .on("postgres_changes", { event: "*", schema: "public", table: "market_windows", filter: f }, () => soon(async () => { if (S.tab === "asta") render(); }))
     .on("postgres_changes", { event: "*", schema: "public", table: "player_values", filter: f }, () => soon(async () => { const v = await q(sb.from("player_values").select("player_id,value,fp").eq("league_id", id).limit(2000)); S.values = new Map(v.map((x) => [x.player_id, x])); if (S.tab === "asta") render(); }))
@@ -668,6 +672,7 @@ function renderTabs() {
     b.querySelector(".dot")?.remove();
     b.querySelector(".badge")?.remove();
     if (b.dataset.tab === "asta" && !isTrade() && S.auction?.status === "open" && S.tab !== "asta") b.insertAdjacentHTML("beforeend", '<span class="dot"></span>');
+    if (b.dataset.tab === "asta" && isTrade() && S.tradeIn > 0) b.insertAdjacentHTML("beforeend", `<span class="badge" title="Proposte di scambio da guardare">${S.tradeIn}</span>`);
     if (b.dataset.tab === "formazione" && S.league) {
       const inj = myInjuries(), hot = inj.filter((x) => x.starter).length;
       if (hot) b.insertAdjacentHTML("beforeend", `<span class="badge" title="Titolari infortunati">${hot}</span>`);
@@ -1430,6 +1435,7 @@ async function tradeView() {
     q(sb.from("transactions").select("*").eq("league_id", lid).order("id", { ascending: false }).limit(25)),
     rpc("my_fa_bids", { p_token: S.sess.token }),
   ]);
+  S.tradeIn = trades.filter((x) => x.status === "pending" && x.to_team === my).length; renderTabs();
   const t = now();
   const open = wins.find((w) => w.status === "scheduled" && new Date(w.opens_at) <= t && new Date(w.closes_at) > t);
   const next = wins.filter((w) => w.status === "scheduled" && new Date(w.opens_at) > t).sort((a, b) => a.opens_at.localeCompare(b.opens_at))[0];
@@ -1472,7 +1478,11 @@ async function tradeView() {
     ${out.map((x) => `<div class="stack" style="border-top:1px solid var(--line);padding-top:10px"><span class="chip" style="align-self:flex-start">In attesa di risposta</span>${tradeLine(x)}<div class="row"><button class="btn small" data-act="tr-cancel" data-tid="${x.id}">Ritira proposta</button></div></div>`).join("")}
     ${!inc.length && !out.length && !M.newTrade ? '<div class="muted">Nessuna proposta in corso. Puoi proporre uno scambio in qualsiasi momento.</div>' : ""}
     ${builder}
-    ${trades.filter((x) => x.status !== "pending").slice(0, 5).map((x) => `<div class="muted" style="font-size:.85rem;border-top:1px solid var(--line);padding-top:8px">${{ accepted: "Accettato", rejected: "Rifiutato", cancelled: "Ritirato", failed: "Non riuscito" }[x.status]}: ${esc(teamName(x.from_team))} ↔ ${esc(teamName(x.to_team))}${x.note ? ` (${esc(x.note)})` : ""}</div>`).join("")}
+    ${(() => { const done = trades.filter((x) => x.status !== "pending").slice(0, 5); if (!done.length) return "";
+      const st = { accepted: ["Fatto", "var(--win)"], rejected: ["Rifiutato", "var(--loss)"], cancelled: ["Ritirato", "var(--muted)"], failed: ["Non riuscito", "var(--loss)"] };
+      const when = (x) => new Date(x.resolved_at || x.created_at).toLocaleDateString("it-IT", { day: "numeric", month: "short", timeZone: "Europe/Rome" });
+      return `<details style="border-top:1px solid var(--line);padding-top:10px"><summary class="label" style="cursor:pointer">Storico scambi (${done.length}) ›</summary>
+        ${done.map((x) => `<div style="font-size:.85rem;padding:8px 0;border-bottom:1px dashed var(--line)"><div class="row" style="gap:6px;margin-bottom:4px"><span class="chip" style="color:${st[x.status][1]};border-color:${st[x.status][1]}">${st[x.status][0]}</span><span class="muted">${when(x)}</span></div><div class="muted">${tradeLine(x)}</div>${x.note ? `<div class="muted">${esc(x.note)}</div>` : ""}</div>`).join("")}</details>`; })()}
   </section>`;
 
   // la mia rosa con quotazioni
