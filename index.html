@@ -594,7 +594,9 @@ async function loadTrend() {
   try {
     const [t, g] = await Promise.all([
       q(sb.from("team_trend").select("*").eq("league_id", S.sess.league_id)),
-      q(sb.from("games").select("id").eq("state", "in").limit(1)),
+      // partite in corso, oppure arrivate all'orario d'inizio nelle ultime 4 ore e non ancora finite
+      // (così LIVE compare subito al via, senza aspettare l'aggiornamento del server)
+      q(sb.from("games").select("id").or(`state.eq.in,and(state.eq.pre,start_time.lte.${new Date().toISOString()},start_time.gte.${new Date(Date.now() - 4 * 3600e3).toISOString()})`).limit(1)),
     ]);
     S.trend = t; S.tkLive = g.length > 0;
   } catch {}
@@ -630,7 +632,7 @@ function renderTicker() {
   if (el.dataset.k !== html) { el.innerHTML = html; el.dataset.k = html; }
   el.hidden = false; document.body.classList.add("has-tk");
 }
-setInterval(async () => { if (S.sess && S.league && !document.hidden) { await loadTrend(); renderTicker(); } }, 180000);
+setInterval(async () => { if (S.sess && S.league && !document.hidden) { await loadTrend(); renderTicker(); } }, 60000);
 $("#ticker").addEventListener("click", () => { if (!S.league) return; S.tab = "classifica"; store.set("fantanba.tab", S.tab); render(); window.scrollTo(0, 0); });
 async function loadBids() {
   const a = S.auction; if (!a?.player_id) { S.bids = []; return; }
