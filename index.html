@@ -1734,7 +1734,7 @@ function legaView() {
       ${adm ? `<details style="margin-top:6px"><summary class="muted" style="font-size:.85rem;padding:6px 0">Gestisci</summary><div class="stack" style="padding-top:6px">
         <div class="row"><span class="muted" style="font-size:.85rem;width:110px">Crediti extra (±)</span><input type="number" inputmode="numeric" class="grow" style="width:auto" id="adj-${t.id}" value="${t.credit_adjust || 0}"><button class="btn small" data-adj="${t.id}">Salva</button></div>
         <div class="row"><span class="muted" style="font-size:.85rem;width:110px">Nuovo PIN</span><input type="text" inputmode="numeric" maxlength="8" class="grow" style="width:auto" id="pin-${t.id}" placeholder="es. 4821"><button class="btn small" data-pin="${t.id}">Imposta</button></div>
-        ${lg.status === "setup" && !t.is_admin && t.id !== S.sess.team_id ? `<div class="row"><button class="btn small danger" data-act="del-team" data-tid="${t.id}">Elimina squadra</button><span class="muted" style="font-size:.8rem">Solo prima dell'asta</span></div><div id="del-${t.id}"></div>` : ""}
+        ${lg.status === "setup" && !t.is_admin && t.id !== S.sess.team_id ? `<div class="row"><span class="muted" style="font-size:.85rem;width:110px">Elimina squadra</span><span class="grow muted" style="font-size:.8rem">Solo prima dell'asta</span><button class="btn small danger" data-act="del-team" data-tid="${t.id}">Elimina</button></div><div id="del-${t.id}"></div>` : ""}
       </div></details>` : ""}</div>`).join("")}</div></section>
     ${adm ? `<section class="card stack"><div class="label">Gestione (solo admin)</div>
       <div class="grid2">
