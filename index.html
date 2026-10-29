@@ -409,7 +409,7 @@ const S = {
   players: new Map(), last: new Map(), cur: new Map(), values: new Map(),
   mk: { give: [], get: [], tradeTo: "", givec: 0, getc: 0, msg: "", fa: null, faAmt: "", faDrop: "", rel: null, newTrade: false, faSearch: "", faCourt: "", faBand: "", faPage: 0 },
   day: null, lineupDate: null, lineup: null, openMatch: null,
-  search: "", court: "", onlyFree: true, band: "", page: 0, favs: new Set(), onlyFav: false,
+  search: "", court: "", sortBy: store.get("fantanba.sort") || "val", onlyFree: true, band: "", page: 0, favs: new Set(), onlyFav: false,
 };
 const me = () => S.teams.find((t) => t.id === S.sess?.team_id);
 const isAdmin = () => !!me()?.is_admin;
@@ -461,6 +461,7 @@ function fpFrom(s, rules = R()) {
   return v;
 }
 // media della stagione in corso solo dopo almeno 5 partite, prima vale la 2025-26
+const fpSeason = (id) => { const c = S.cur.get(id); return c && c.gp >= 5 ? "26-27" : S.last.get(id) ? "25-26" : c ? "26-27" : ""; };
 const estFp = (id) => { const c = S.cur.get(id); return (c && c.gp >= 5 ? fpFrom(c) : null) ?? fpFrom(S.last.get(id)) ?? (c ? fpFrom(c) : 0) ?? 0; };
 
 function credits(teamId) {
@@ -721,7 +722,7 @@ function prow(p, { meta = "", stats = "", action = "", below = "" } = {}) {
     <div style="min-width:0"><div class="pn">${esc(p.name)}</div>
       <div class="row" style="gap:6px;margin-top:3px">${courtChip(p)}<span class="muted" style="font-size:.85rem">${esc(p.team_abbr || "")}</span>${injChip(p)}${meta}</div>
       ${injLine(p)}${stats ? `<div class="muted num" style="font-size:.8rem;margin-top:2px">${stats}</div>` : ""}</div>
-    <div class="pq"><div class="label">Quot.</div><div class="v num">${val(p.id)}</div><div class="muted num" style="font-size:.75rem">${r1(estFp(p.id))} pt/gara</div></div>
+    <div class="pq"><div class="label">Quot.</div><div class="v num">${val(p.id)}</div><div class="muted num" style="font-size:.75rem">${r1(estFp(p.id))} pt/gara</div>${fpSeason(p.id) ? `<div class="muted" style="font-size:.65rem">${fpSeason(p.id)}</div>` : ""}</div>
     <div class="pa">${action}</div>${below ? `<div style="grid-column:1 / -1">${below}</div>` : ""}</div>`;
 }
 
@@ -1336,19 +1337,20 @@ function nominateBox(previewOnly = false) {
   if (S.court) list = list.filter((p) => p.court === S.court);
   if (qs) list = list.filter((p) => p.name.toLowerCase().includes(qs) || (p.team_abbr || "").toLowerCase() === qs);
   list = inBand(list, S.band);
-  list.sort((a, b) => val(b.id) - val(a.id) || estFp(b.id) - estFp(a.id));
+  list.sort(S.sortBy === "fp" ? (a, b) => estFp(b.id) - estFp(a.id) || val(b.id) - val(a.id) : (a, b) => val(b.id) - val(a.id) || estFp(b.id) - estFp(a.id));
   const pages = Math.max(1, Math.ceil(list.length / PER_PAGE)); if (S.page >= pages) S.page = pages - 1;
   return `<section class="card stack">
     <div class="row"><input id="pl-search" class="grow" style="width:auto" placeholder="Cerca giocatore o squadra (es. LAL)" value="${esc(S.search)}">
     <div class="seg"><button class="${!S.court ? "on" : ""}" data-court="">Tutti</button><button class="${S.court === "BC" ? "on" : ""}" data-court="BC">BC</button><button class="${S.court === "FC" ? "on" : ""}" data-court="FC">FC</button></div></div>
     <div class="row" style="gap:16px"><label class="row" style="gap:8px"><input type="checkbox" id="only-free" ${S.onlyFree ? "checked" : ""}> <span>Solo liberi</span></label>
     <button class="btn small ${S.onlyFav ? "primary" : ""}" data-act="only-fav">★ Preferiti (${S.favs.size})</button></div>
+    <div class="row" style="gap:10px"><span class="muted" style="font-size:.85rem">Ordina per</span><div class="seg"><button class="${S.sortBy !== "fp" ? "on" : ""}" data-sort="val">Quotazione</button><button class="${S.sortBy === "fp" ? "on" : ""}" data-sort="fp">Pt/gara</button></div></div>
     ${bandBar(S.band, "band")}
     ${pager(list.length, S.page, "page")}
     <div class="list" id="pl-list">${pageOf(list, S.page).map((p) => {
       const l = S.last.get(p.id), owner = S.roster.find((r) => r.player_id === p.id);
       return prow(p, {
-        stats: l ? `25-26: ${r1(l.pts)} pt · ${r1(l.reb)} rb · ${r1(l.ast)} as · ${l.gp} gare` : "nessuna statistica 25-26",
+        stats: (l ? `25-26: ${r1(l.pts)} pt · ${r1(l.reb)} rb · ${r1(l.ast)} as · ${l.gp} gare` : "nessuna statistica 25-26") + (S.cur.get(p.id)?.gp ? `<br>26-27: ${r1(S.cur.get(p.id).pts)} pt · ${r1(S.cur.get(p.id).reb)} rb · ${r1(S.cur.get(p.id).ast)} as · ${S.cur.get(p.id).gp} gare` : ""),
         action: owner ? `<span class="chip">${esc(teamName(owner.team_id))} · ${owner.price}</span>` : previewOnly ? "" : `<button class="btn small primary" data-nom="${p.id}">Chiama a ${startOf(p.id)}</button>`,
       });
     }).join("") || `<div class="empty">${S.onlyFav ? "Nessun preferito qui. Tocca la ★ accanto a un giocatore per salvarlo." : "Nessun giocatore trovato"}</div>`}</div>
@@ -1801,6 +1803,7 @@ function bindCommon() {
       if (d.cap) { const C = S.lineup.captains, i = C.indexOf(d.cap); i >= 0 ? C.splice(i, 1) : C.push(d.cap); S.lineup.dirty = true; return render(); }
       if (d.capmv) { const C = S.lineup.captains, i = C.indexOf(d.capmv), j = i + +d.dir; if (i < 0 || j < 0 || j >= C.length) return; [C[i], C[j]] = [C[j], C[i]]; S.lineup.dirty = true; return render(); }
       if (d.court !== undefined) { S.court = d.court; S.page = 0; return render(); }
+      if (d.sort) { S.sortBy = d.sort; store.set("fantanba.sort", d.sort); S.page = 0; return render(); }
       if (d.nom) { await rpc("auction_nominate", { p_token: tok, p_player: d.nom, p_start: startOf(d.nom) }); return; }
       if (d.bid) { await rpc("auction_bid", { p_token: tok, p_amount: +d.bid }); return; }
       if (d.admAuction) { await rpc("admin_auction", { p_token: tok, p_action: d.admAuction, p_team: null }); return; }
