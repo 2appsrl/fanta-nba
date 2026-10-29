@@ -1267,6 +1267,9 @@ function astaView() {
   const a = S.auction || {}, lg = S.league, ro = R().roster || {}, au = R().auction || {};
   const open = lg.status === "auction" || lg.status === "season";
   const myMax = maxBid(S.sess.team_id);
+  const paused = open && !!a.paused_at;
+  const pauseBar = paused ? `<section class="card row between" style="border:2px solid var(--accent)"><div><div style="font-family:var(--display);font-weight:900;font-size:1.5rem;color:var(--accent)">⏸ Asta in pausa</div><div class="muted" style="font-size:.85rem">${isAdmin() ? "Offerte e chiamate sono bloccate. Il timer riparte da dove si era fermato." : "Offerte e chiamate sono bloccate finché l'admin non riprende."}</div></div>${isAdmin() ? `<button class="btn primary" data-adm-auction="resume">▶ Riprendi</button>` : ""}</section>`
+    : open && isAdmin() ? `<section class="card row between"><span class="muted" style="font-size:.9rem">Serve una pausa? Blocca offerte, chiamate e timer per tutti.</span><button class="btn small" data-adm-auction="pause">⏸ Pausa</button></section>` : "";
   let board = "";
   if (!open) {
     board = `<section class="board"><div class="label">Asta</div><div class="mid" style="margin-top:6px">Non ancora aperta</div><p style="opacity:.8;margin:6px 0 0">Intanto studia i giocatori e salva i preferiti con la ★. ${isAdmin() ? "Quando siete tutti pronti aprila dalla scheda Lega." : "Quando l'admin la apre, qui compare il pulsante per chiamare."}</p></section>
@@ -1282,13 +1285,13 @@ function astaView() {
         <div class="row" style="gap:6px;margin-top:4px">${courtChip(p)}${injChip(p)}<span style="opacity:.75;font-size:.85rem">media ${r1(estFp(p.id))} pt</span></div></div></div>
       <div class="row between" style="margin-top:14px;align-items:flex-end">
         <div><div class="label">Offerta</div><div class="big" id="bid-big">${a.current_bid}</div><div style="font-weight:700;${leading ? "color:var(--accent)" : ""}">${leading ? "Sei in testa" : esc(teamName(a.current_team_id))}</div></div>
-        <div style="text-align:right"><div class="label">Tempo</div><div class="secs" id="secs">–</div></div>
+        <div style="text-align:right"><div class="label">Tempo</div><div class="secs" id="secs">${paused ? "⏸" : "–"}</div></div>
       </div>
-      <div class="timerbar"><i id="tbar" style="width:100%"></i></div>
+      <div class="timerbar"><i id="tbar" style="width:${paused ? Math.max(0, Math.min(100, (+a.paused_left || 0) / (+au.timer_seconds || 20) * 100)) : 100}%"></i></div>
     </section>
     ${rosterNeedBox()}
     <section class="card stack">
-      ${why ? `<div class="muted">Non puoi offrire: ${esc(why)}.</div>` : leading ? `<div class="muted">Sei il miglior offerente. Aspetta o lascia correre il tempo.</div>` : `
+      ${paused ? `<div class="muted">Asta in pausa: offerte bloccate.</div>` : why ? `<div class="muted">Non puoi offrire: ${esc(why)}.</div>` : leading ? `<div class="muted">Sei il miglior offerente. Aspetta o lascia correre il tempo.</div>` : `
       <div class="row">${[1, 5, 10, 25].map((n) => { const v = a.current_bid + n; return `<button class="btn ${n === 1 ? "primary" : ""}" data-bid="${v}" ${v > myMax || n < (+au.min_increment || 1) ? "disabled" : ""}>+${n} · ${v}</button>`; }).join("")}</div>
       <div class="row"><input id="bid-custom" type="number" inputmode="numeric" min="${minNext}" max="${myMax}" placeholder="Offerta libera (max ${myMax})" class="grow" style="width:auto"><button class="btn" data-act="bid-custom">Offri</button></div>`}
       <div class="muted num" style="font-size:.85rem">Crediti: ${credits(S.sess.team_id)} · offerta massima possibile: ${myMax}</div>
@@ -1303,14 +1306,14 @@ function astaView() {
       ${au.turn_order && turn ? turnQueue(turn) : ""}
       ${lr ? `<p style="opacity:.8;margin-bottom:0">Ultimo: ${esc(P(lr.player_id).name)} → ${esc(teamName(lr.team_id))} per ${lr.price}</p>` : ""}</section>
       ${rosterNeedBox()}
-      ${myTurn ? nominateBox() : `<section class="card"><div class="muted">Prepara la prossima chiamata: cerca chi ti interessa qui sotto.</div></section>${nominateBox(true)}`}
+      ${paused ? nominateBox(true) : myTurn ? nominateBox() : `<section class="card"><div class="muted">Prepara la prossima chiamata: cerca chi ti interessa qui sotto.</div></section>${nominateBox(true)}`}
       ${isAdmin() && au.turn_order ? `<section class="card row"><span class="label">Cambia turno</span><select id="turn-sel" class="grow" style="width:auto">${S.teams.map((t) => `<option value="${t.id}" ${t.id === turn ? "selected" : ""}>${esc(t.name)}</option>`).join("")}</select><button class="btn small" data-act="set-turn">Imposta</button></section>` : ""}`;
   }
   const teamsBox = `<section class="card"><div class="label">Squadre</div><div class="scroll"><table><thead><tr><th>Squadra</th><th>Crediti</th><th>Rosa</th><th>BC</th><th>FC</th><th>Max</th></tr></thead><tbody>${S.teams.map((t) => {
     const r = rosterOf(t.id).map((x) => P(x.player_id));
     return `<tr><td class="team ${t.id === S.sess.team_id ? "mine-name" : ""}" style="font-weight:700">${teamLogo(t.id, 22)} ${esc(t.name)}${ownerTag(t.id)}${a.next_team_id === t.id && a.status !== "open" ? ' <span class="chip on">turno</span>' : ""}</td><td>${credits(t.id)}</td><td>${r.length}/${ro.size}</td><td>${r.filter((p) => p.court === "BC").length}/${ro.bc}</td><td>${r.filter((p) => p.court === "FC").length}/${ro.fc}</td><td>${Math.max(0, maxBid(t.id))}</td></tr>`;
   }).join("")}</tbody></table></div></section>`;
-  return head("Asta") + `<div class="stack">${board}${teamsBox}${myRosterBox()}</div>`;
+  return head("Asta") + `<div class="stack">${pauseBar}${board}${teamsBox}${myRosterBox()}</div>`;
 }
 const PER_PAGE = 30;
 const BANDS = [["", "Tutte"], ["0-10", "fino a 10"], ["11-30", "11–30"], ["31-60", "31–60"], ["61-100", "61–100"], ["101-99999", "oltre 100"]];
@@ -1806,7 +1809,7 @@ function bindCommon() {
       if (d.sort) { S.sortBy = d.sort; store.set("fantanba.sort", d.sort); S.page = 0; return render(); }
       if (d.nom) { await rpc("auction_nominate", { p_token: tok, p_player: d.nom, p_start: startOf(d.nom) }); return; }
       if (d.bid) { await rpc("auction_bid", { p_token: tok, p_amount: +d.bid }); return; }
-      if (d.admAuction) { await rpc("admin_auction", { p_token: tok, p_action: d.admAuction, p_team: null }); return; }
+      if (d.admAuction) { await rpc("admin_auction", { p_token: tok, p_action: d.admAuction, p_team: null }); if (d.admAuction === "pause" || d.admAuction === "resume") toast(d.admAuction === "pause" ? "Asta in pausa" : "Asta ripresa"); return; }
       if (d.pin) { const v = ($("#pin-" + d.pin).value || "").trim(); await rpc("admin_team", { p_token: tok, p_team: d.pin, p_action: "reset_pin", p_value: { pin: v } }); toast(`Nuovo PIN per ${teamName(d.pin)}: ${v}`); return; }
       if (d.adj) { await rpc("admin_team", { p_token: tok, p_team: d.adj, p_action: "credit_adjust", p_value: { value: +$("#adj-" + d.adj).value || 0 } }); toast("Crediti aggiornati"); return; }
       if (d.tg) { const M = S.mk, arr = M[d.tg]; const i = arr.indexOf(d.id); i >= 0 ? arr.splice(i, 1) : arr.push(d.id); return render(); }
