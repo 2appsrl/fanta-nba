@@ -1734,6 +1734,7 @@ function legaView() {
       ${adm ? `<details style="margin-top:6px"><summary class="muted" style="font-size:.85rem;padding:6px 0">Gestisci</summary><div class="stack" style="padding-top:6px">
         <div class="row"><span class="muted" style="font-size:.85rem;width:110px">Crediti extra (±)</span><input type="number" inputmode="numeric" class="grow" style="width:auto" id="adj-${t.id}" value="${t.credit_adjust || 0}"><button class="btn small" data-adj="${t.id}">Salva</button></div>
         <div class="row"><span class="muted" style="font-size:.85rem;width:110px">Nuovo PIN</span><input type="text" inputmode="numeric" maxlength="8" class="grow" style="width:auto" id="pin-${t.id}" placeholder="es. 4821"><button class="btn small" data-pin="${t.id}">Imposta</button></div>
+        ${lg.status === "setup" && !t.is_admin && t.id !== S.sess.team_id ? `<div class="row"><button class="btn small danger" data-act="del-team" data-tid="${t.id}">Elimina squadra</button><span class="muted" style="font-size:.8rem">Solo prima dell'asta</span></div><div id="del-${t.id}"></div>` : ""}
       </div></details>` : ""}</div>`).join("")}</div></section>
     ${adm ? `<section class="card stack"><div class="label">Gestione (solo admin)</div>
       <div class="grid2">
@@ -1910,6 +1911,9 @@ function bindCommon() {
         }
         case "unassign-yes": { const owner = S.roster.find((r) => r.player_id === d.pid); await rpc("admin_team", { p_token: tok, p_team: owner?.team_id || S.teams[0].id, p_action: "remove_player", p_value: { player_id: d.pid } }); toast("Giocatore tolto"); $("#as-confirm").innerHTML = ""; break; }
         case "unassign-no": $("#as-confirm").innerHTML = ""; break;
+        case "del-team": $("#del-" + d.tid).innerHTML = `<div class="row" style="margin-top:8px"><span class="grow">Eliminare <b>${esc(teamName(d.tid))}</b>? Non si può annullare: l'amico dovrà iscriversi di nuovo.</span><button class="btn small danger" data-act="del-team-yes" data-tid="${d.tid}">Sì, elimina</button><button class="btn small" data-act="del-team-no" data-tid="${d.tid}">No</button></div>`; break;
+        case "del-team-no": $("#del-" + d.tid).innerHTML = ""; break;
+        case "del-team-yes": { const n = teamName(d.tid); await rpc("admin_team", { p_token: tok, p_team: d.tid, p_action: "delete_team" }); await loadLeague(); render(); toast(n + " eliminata"); break; }
         case "logout": store.del("fantanba.sess"); S.sess = null; S.league = null; if (channel) sb.removeChannel(channel); render(); break;
       }
     } catch (err) {
