@@ -741,7 +741,7 @@ async function render() {
     else if (S.tab === "asta") html = isTrade() ? await tradeView() : astaView();
     else if (S.tab === "regole") html = regoleView();
     else if (S.tab === "classifica") html = await classificaView();
-    else html = legaView();
+    else html = await legaView();
   } catch (e) { html = head("Ops") + `<section class="card">${esc(e.message)}</section>`; }
   if (ticket !== render.seq) return;
   app.innerHTML = html;
@@ -1433,6 +1433,23 @@ async function classificaView() {
 
 /* ---------- MERCATO ---------- */
 const val = (id) => S.values.get(id)?.value ?? 1;
+// gestione finestre di mercato (admin): usata in Lega e in Trade
+async function loadWindows() {
+  const wins = await q(sb.from("market_windows").select("*").eq("league_id", S.sess.league_id).neq("status", "cancelled").order("opens_at", { ascending: false }).limit(10));
+  const t = now();
+  return { wins, open: wins.find((w) => w.status === "scheduled" && new Date(w.opens_at) <= t && new Date(w.closes_at) > t), next: wins.filter((w) => w.status === "scheduled" && new Date(w.opens_at) > t).sort((a, b) => a.opens_at.localeCompare(b.opens_at))[0] };
+}
+function winAdmin(open, next) {
+  const t = now(), toLocal = (d) => { const z = new Date(d.getTime() - d.getTimezoneOffset() * 60000); return z.toISOString().slice(0, 16); };
+  return `<div class="stack">
+    <div><b style="color:${open ? "var(--win)" : "var(--loss)"}">${open ? "● Mercato aperto" : "● Mercato chiuso"}</b> <span class="muted" style="font-size:.85rem">${open ? "fino a " + fmtDT(open.closes_at) : next ? "· prossima apertura " + fmtDT(next.opens_at) : "· nessuna finestra in programma"}</span></div>
+    ${open ? `<div class="row"><button class="btn" data-act="win-close" data-wid="${open.id}">Chiudi ora e assegna le buste</button><button class="btn danger" data-act="win-cancel" data-wid="${open.id}">Annulla finestra</button></div>` : ""}
+    ${next ? `<div class="row"><span class="grow muted">Programmata: ${fmtDT(next.opens_at)} → ${fmtDT(next.closes_at)}</span><button class="btn small danger" data-act="win-cancel" data-wid="${next.id}">Annulla</button></div>` : ""}
+    <div class="grid2"><label class="field"><span class="muted" style="font-size:.85rem">Apertura</span><input type="datetime-local" id="win-open" value="${toLocal(new Date(t))}"></label>
+    <label class="field"><span class="muted" style="font-size:.85rem">Chiusura</span><input type="datetime-local" id="win-close" value="${toLocal(new Date(t + 3 * 864e5))}"></label></div>
+    <div class="row"><button class="btn primary" data-act="win-create">Apri / programma finestra</button><button class="btn" data-act="recompute">Ricalcola quotazioni</button></div>
+    <p class="muted" style="margin:0;font-size:.85rem">Con apertura = adesso il mercato si apre subito. A mercato aperto si possono fare scambi, rilasci e buste sui free agent. Alla chiusura le buste vengono assegnate entro 5 minuti e le proposte di scambio senza risposta scadono.</p></div>`;
+}
 const relPct = () => +((R().market || {}).release_pct ?? 90);
 const refundOf = (id) => Math.round((val(id) * relPct()) / 100);
 const pname = (id) => esc(P(id).name);
@@ -1451,33 +1468,25 @@ function txText(t) {
 }
 async function tradeView() {
   const lid = S.sess.league_id, my = S.sess.team_id, M = S.mk, ro = R().roster || {};
-  const [wins, trades, tx, myBids] = await Promise.all([
-    q(sb.from("market_windows").select("*").eq("league_id", lid).neq("status", "cancelled").order("opens_at", { ascending: false }).limit(10)),
+  const [W, trades, tx, myBids] = await Promise.all([
+    loadWindows(),
     q(sb.from("trades").select("*").eq("league_id", lid).or(`from_team.eq.${my},to_team.eq.${my}`).order("id", { ascending: false }).limit(20)),
     q(sb.from("transactions").select("*").eq("league_id", lid).order("id", { ascending: false }).limit(25)),
     rpc("my_fa_bids", { p_token: S.sess.token }),
   ]);
   S.tradeIn = trades.filter((x) => x.status === "pending" && x.to_team === my).length; renderTabs();
-  const t = now();
-  const open = wins.find((w) => w.status === "scheduled" && new Date(w.opens_at) <= t && new Date(w.closes_at) > t);
-  const next = wins.filter((w) => w.status === "scheduled" && new Date(w.opens_at) > t).sort((a, b) => a.opens_at.localeCompare(b.opens_at))[0];
+  const { open, next } = W;
   const mine = rosterOf(my).map((r) => ({ ...P(r.player_id), price: r.price }));
   const full = mine.length >= (+ro.size || 10);
 
   // finestra
-  const toLocal = (d) => { const z = new Date(d.getTime() - d.getTimezoneOffset() * 60000); return z.toISOString().slice(0, 16); };
   const winBox = `<section class="board"><div class="label">Finestra di mercato</div>
     <div class="mid" style="margin-top:6px">${open ? "Aperta" : "Chiusa"}</div>
-    <p style="opacity:.8;margin:6px 0 0">${open ? `Si chiude ${fmtDT(open.closes_at)}. Puoi rilasciare giocatori e fare offerte segrete sui free agent: a chiusura vince l'offerta più alta.` : next ? `Prossima apertura ${fmtDT(next.opens_at)}, chiusura ${fmtDT(next.closes_at)}.` : "Nessuna finestra in programma. Gli scambi tra squadre sono sempre aperti."}</p></section>
-    ${isAdmin() ? `<details class="card" style="background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px"${open ? " open" : ""}><summary class="label" style="padding:4px 0">Gestione finestre (admin) ›</summary><div class="stack" style="margin-top:10px">
-      ${open ? `<div class="row"><button class="btn" data-act="win-close" data-wid="${open.id}">Chiudi ora e assegna le buste</button><button class="btn danger" data-act="win-cancel" data-wid="${open.id}">Annulla finestra</button></div>` : ""}
-      ${next ? `<div class="row"><span class="grow muted">Programmata: ${fmtDT(next.opens_at)} → ${fmtDT(next.closes_at)}</span><button class="btn small danger" data-act="win-cancel" data-wid="${next.id}">Annulla</button></div>` : ""}
-      <div class="grid2"><label class="field"><span class="muted" style="font-size:.85rem">Apertura</span><input type="datetime-local" id="win-open" value="${toLocal(new Date(t))}"></label>
-      <label class="field"><span class="muted" style="font-size:.85rem">Chiusura</span><input type="datetime-local" id="win-close" value="${toLocal(new Date(t + 3 * 864e5))}"></label></div>
-      <div class="row"><button class="btn primary" data-act="win-create">Programma finestra</button><button class="btn" data-act="recompute">Ricalcola quotazioni</button></div>
-      <p class="muted" style="margin:0;font-size:.85rem">Le buste vengono assegnate in automatico entro 5 minuti dalla chiusura.</p></div></details>` : ""}`;
+    <p style="opacity:.8;margin:6px 0 0">${open ? `Si chiude ${fmtDT(open.closes_at)}. Puoi scambiare con le altre squadre, rilasciare giocatori e fare offerte segrete sui free agent.` : next ? `Prossima apertura ${fmtDT(next.opens_at)}, chiusura ${fmtDT(next.closes_at)}. Scambi, rilasci e buste solo a mercato aperto.` : "Nessuna finestra in programma. Scambi, rilasci e buste si fanno solo quando l'admin apre il mercato."}</p></section>
+    ${isAdmin() ? `<details class="card" style="background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px"${open ? " open" : ""}><summary class="label" style="padding:4px 0">Gestione finestre (admin) ›</summary><div style="margin-top:10px">${winAdmin(open, next)}</div></details>` : ""}`;
 
   // scambi
+  if (!open) M.newTrade = false;
   const pend = trades.filter((x) => x.status === "pending");
   const inc = pend.filter((x) => x.to_team === my), out = pend.filter((x) => x.from_team === my);
   const tradeLine = (x) => `<div><b>${esc(teamName(x.from_team))}</b> dà ${x.give_players.map(pname).join(", ")}${x.give_credits ? ` + <b>${x.give_credits} cr</b>` : ""}<br><b>${esc(teamName(x.to_team))}</b> dà ${x.get_players.map(pname).join(", ")}${x.get_credits ? ` + <b>${x.get_credits} cr</b>` : ""}${x.message ? `<div class="muted">“${esc(x.message)}”</div>` : ""}</div>`;
@@ -1497,11 +1506,11 @@ async function tradeView() {
       <button class="btn primary" data-act="send-trade" ${M.give.length && M.get.length && M.tradeTo ? "" : "disabled"}>Invia proposta</button></div>` : "";
   const newsNow = S.tradeNews || [];
   if (newsNow.length) { store.set(trSeenKey(), new Date().toISOString()); S.tradeNews = []; setTimeout(renderTabs, 0); }
-  const tradesBox = `<section class="card stack"><div class="row between"><div class="label">Scambi</div><button class="btn small" data-act="new-trade">${M.newTrade ? "Chiudi" : "Nuova proposta"}</button></div>
+  const tradesBox = `<section class="card stack"><div class="row between"><div class="label">Scambi</div>${open ? `<button class="btn small" data-act="new-trade">${M.newTrade ? "Chiudi" : "Nuova proposta"}</button>` : `<span class="muted" style="font-size:.85rem">Mercato chiuso</span>`}</div>
     ${newsNow.map((x) => `<div class="stack" style="gap:6px;border-radius:10px;padding:10px 12px;background:${x.status === "accepted" ? "rgba(19,128,75,.12)" : "rgba(194,52,43,.1)"};border:1px solid ${x.status === "accepted" ? "var(--win)" : "var(--loss)"}"><span class="chip on" style="align-self:flex-start">Novità</span><b>${tradeNewsText(x)}</b>${tradeLine(x)}</div>`).join("")}
-    ${inc.map((x) => `<div class="stack" style="border-top:1px solid var(--line);padding-top:10px"><span class="chip on" style="align-self:flex-start">Per te</span>${tradeLine(x)}<div class="row"><button class="btn primary small" data-act="tr-accept" data-tid="${x.id}">Accetta</button><button class="btn small" data-act="tr-reject" data-tid="${x.id}">Rifiuta</button></div></div>`).join("")}
+    ${inc.map((x) => `<div class="stack" style="border-top:1px solid var(--line);padding-top:10px"><span class="chip on" style="align-self:flex-start">Per te</span>${tradeLine(x)}<div class="row">${open ? `<button class="btn primary small" data-act="tr-accept" data-tid="${x.id}">Accetta</button>` : ""}<button class="btn small" data-act="tr-reject" data-tid="${x.id}">Rifiuta</button></div></div>`).join("")}
     ${out.map((x) => `<div class="stack" style="border-top:1px solid var(--line);padding-top:10px"><span class="chip" style="align-self:flex-start">In attesa di risposta</span>${tradeLine(x)}<div class="row"><button class="btn small" data-act="tr-cancel" data-tid="${x.id}">Ritira proposta</button></div></div>`).join("")}
-    ${!inc.length && !out.length && !M.newTrade ? '<div class="muted">Nessuna proposta in corso. Puoi proporre uno scambio in qualsiasi momento.</div>' : ""}
+    ${!inc.length && !out.length && !M.newTrade ? `<div class="muted">${open ? "Nessuna proposta in corso. Puoi proporre uno scambio fino alla chiusura del mercato." : "Gli scambi si propongono solo a mercato aperto."}</div>` : ""}
     ${builder}
     ${(() => { const done = trades.filter((x) => x.status !== "pending").slice(0, 5); if (!done.length) return "";
       const st = { accepted: ["Fatto", "var(--win)"], rejected: ["Rifiutato", "var(--loss)"], cancelled: ["Ritirato", "var(--muted)"], failed: ["Non riuscito", "var(--loss)"] };
@@ -1540,7 +1549,7 @@ async function tradeView() {
   const pages = Math.max(1, Math.ceil(list.length / PER_PAGE)); if (M.faPage >= pages) M.faPage = pages - 1;
   const faBox = `<section class="card stack">
     <div class="seg" style="align-self:flex-start"><button class="${pool === "fa" ? "on" : ""}" data-pool="fa">Free agent</button><button class="${pool === "teams" ? "on" : ""}" data-pool="teams">Altre squadre</button></div>
-    <div class="muted" style="font-size:.85rem">${pool === "fa" ? (open ? "Offerta segreta · minimo = quotazione" : "Offerte solo a mercato aperto") : "Proponi uno scambio quando vuoi"}</div>
+    <div class="muted" style="font-size:.85rem">${pool === "fa" ? (open ? "Offerta segreta · minimo = quotazione" : "Offerte solo a mercato aperto") : (open ? "Proponi uno scambio fino alla chiusura del mercato" : "Scambi solo a mercato aperto")}</div>
     <div class="row"><input id="fa-search" class="grow" style="width:auto" placeholder="${pool === "fa" ? "Cerca giocatore o squadra NBA" : "Cerca giocatore o squadra"}" value="${esc(M.faSearch)}">
     <div class="seg"><button class="${!M.faCourt ? "on" : ""}" data-fac="">Tutti</button><button class="${M.faCourt === "BC" ? "on" : ""}" data-fac="BC">BC</button><button class="${M.faCourt === "FC" ? "on" : ""}" data-fac="FC">FC</button></div></div>
     <div class="row"><button class="btn small ${S.onlyFav ? "primary" : ""}" data-act="only-fav">★ Preferiti (${S.favs.size})</button></div>
@@ -1549,7 +1558,7 @@ async function tradeView() {
     <div class="list" id="fa-list">${pageOf(list, M.faPage).map((p) => {
       const v = val(p.id), isOpen = M.fa === p.id, own = ownerOf.get(p.id);
       const action = pool === "teams"
-        ? `<span class="chip">${esc(teamName(own.team_id))}</span><button class="btn small primary" data-act="trade-for" data-pid="${p.id}" data-team="${own.team_id}">Proponi scambio</button>`
+        ? `<span class="chip">${esc(teamName(own.team_id))}</span>${open ? `<button class="btn small primary" data-act="trade-for" data-pid="${p.id}" data-team="${own.team_id}">Proponi scambio</button>` : ""}`
         : open && !isOpen ? `<button class="btn small primary" data-act="fa-open" data-pid="${p.id}">Fai offerta</button>` : "";
       const below = isOpen && pool === "fa" && open ? `<div class="stack" style="background:var(--surface2);border-radius:8px;padding:10px">
           <div class="grid2"><label class="field"><span class="muted" style="font-size:.85rem">La tua offerta (min ${v})</span><input id="fa-amt" type="number" inputmode="numeric" min="${v}" value="${M.faAmt || v}"></label>
@@ -1667,11 +1676,22 @@ function regoleView() {
     ${sec("Punti", `<div class="rgrid">${STAT.filter(([k]) => +sc[k]).map(([k, l]) => tile(sign(+sc[k]), l, +sc[k] > 0 ? "pos" : "neg")).join("")}
       ${+bo.double_double ? tile(sign(+bo.double_double), "doppia doppia", "pos") : ""}${+bo.triple_double ? tile(sign(+bo.triple_double), "tripla doppia", "pos") : ""}</div>
       <div class="flow" style="font-size:.85rem"><span class="label">Esempio</span>${exParts.map(([k, n]) => `<span class="step">${n} ${n > 1 ? ({ pts: "punti", reb: "rimbalzi", ast: "assist", stl: "rubate", blk: "stoppate", tov: "perse" })[k] : STAT.find((x) => x[0] === k)[1]} ${sign(n * +sc[k])}</span>`).join("")}<span class="arr">=</span><span class="step on num">${r1(exTot)}</span></div>`)}
-    ${sec("Mercato", `<div class="grid2" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr))">
-      <div class="mode"><h3 style="margin-bottom:8px">Quotazione</h3><div class="rgrid">${tile("ogni", "mattina")}${tile("−" + (mk.injury_out_discount ?? 50) + "%", "se Out", "neg")}</div></div>
-      <div class="mode"><h3 style="margin-bottom:8px">Finestre</h3><div class="rgrid">${tile((mk.release_pct ?? 90) + "%", "rilascio")}${tile("busta", "segreta")}</div><div class="muted" style="font-size:.8rem;margin-top:6px">Vince l'offerta più alta</div></div>
-      <div class="mode"><h3 style="margin-bottom:8px">Scambi</h3><div class="rgrid">${tile("sempre", "aperti")}${tile("≥1", "giocatore a testa")}${tile("+cr", "facoltativi")}</div><div class="muted" style="font-size:.8rem;margin-top:6px">Fatto quando l'altro accetta</div></div>
-    </div>`)}
+    ${(() => { const pct = mk.release_pct ?? 90, paid = 30, now_ = 50, back = Math.round(now_ * pct / 100);
+      const box = (title, body) => `<div class="mode"><h3 style="margin-bottom:8px">${title}</h3>${body}</div>`;
+      const li = (t) => `<li style="margin:4px 0">${t}</li>`;
+      return sec("Mercato", `
+      <div class="flow"><span class="step">Mercato chiuso</span><span class="arr">→</span><span class="step on">L'admin apre una finestra</span><span class="arr">→</span><span class="step">Scambi · rilasci · buste</span><span class="arr">→</span><span class="step">Chiusura: buste assegnate</span></div>
+      <p class="muted" style="margin:0">Fuori dalle finestre la rosa è bloccata: niente scambi, rilasci o acquisti. Date e orari delle finestre li decide l'admin e li trovi in Trade.</p>
+      <div class="grid2" style="grid-template-columns:repeat(auto-fit,minmax(240px,1fr))">
+      ${box("Quotazione", `<div class="rgrid">${tile("ogni", "mattina")}${tile("−" + (mk.injury_out_discount ?? 50) + "%", "se Out", "neg")}</div>
+        <ul style="margin:8px 0 0;padding-left:18px;font-size:.9rem">${li("È il valore di mercato del giocatore, uguale per tutti.")}${li("Parte dal valore iniziale e si aggiorna ogni giorno con le prestazioni: chi gioca bene sale, chi gioca male o è Out scende.")}${li("Non dipende da quanto l'hai pagato all'asta.")}</ul>`)}
+      ${box("Scambi tra squadre", `<div class="rgrid">${tile("≥1", "giocatore a testa")}${tile("+cr", "facoltativi")}</div>
+        <ul style="margin:8px 0 0;padding-left:18px;font-size:.9rem">${li("Proponi in Trade: scegli la squadra, chi dai, chi ricevi ed eventuali crediti in più.")}${li("Lo scambio è fatto quando l'altro accetta. Le proposte senza risposta scadono a fine finestra.")}${li("I crediti di ognuno restano uguali, si spostano solo quelli aggiunti nello scambio.")}${li("Dopo lo scambio le rose devono rispettare i limiti: " + (ro.bc || 5) + " BC, " + (ro.fc || 5) + " FC, max " + (ro.max_per_nba_team || 2) + " per squadra NBA.")}</ul>`)}
+      ${box("Rilasciare un giocatore", `<div class="rgrid">${tile(pct + "%", "della quotazione di oggi")}</div>
+        <ul style="margin:8px 0 0;padding-left:18px;font-size:.9rem">${li("Il giocatore torna free agent e tu incassi il " + pct + "% della sua quotazione del giorno, non il prezzo pagato.")}${li(`Esempio: pagato ${paid}, oggi vale ${now_} → incassi <b>${back}</b>. Se invece oggi valesse 20, incasseresti ${Math.round(20 * pct / 100)}.`)}${li("Puoi rilasciare subito oppure solo se vinci una busta (lo indichi nella busta).")}</ul>`)}
+      ${box("Comprare un free agent", `<div class="rgrid">${tile("busta", "segreta")}${tile("min", "= quotazione")}</div>
+        <ul style="margin:8px 0 0;padding-left:18px;font-size:.9rem">${li("Fai un'offerta segreta: nessuno la vede, puoi cambiarla o ritirarla fino alla chiusura.")}${li("Se la rosa è piena devi indicare chi rilasci in caso di vittoria.")}${li("Alla chiusura vince l'offerta più alta. A parità vince chi è più indietro in classifica.")}${li("Paghi quanto hai offerto; quella diventa la cifra pagata per quel giocatore.")}</ul>`)}
+      </div>`); })()}
   </div>`;
 }
 
@@ -1722,8 +1742,9 @@ const RULE_FIELDS = [
   ["Playoff", [["playoffs.teams", "Squadre ai playoff"], ["playoffs.days_per_round", "Giornate per turno"]]],
 ];
 const getPath = (o, p) => p.split(".").reduce((a, k) => a?.[k], o);
-function legaView() {
+async function legaView() {
   const lg = S.league, adm = isAdmin(), rules = R();
+  const W = adm && ["season", "finished"].includes(lg.status) ? await loadWindows().catch(() => null) : null;
   const stLbl = { setup: "Iscrizioni", auction: "Asta", season: "Stagione", finished: "Finita" };
   const rulesForm = RULE_FIELDS.map(([title, fields]) => `<div><div class="label" style="margin:8px 0 6px">${title}</div><div class="grid2">${fields.map(([path, label, type]) => {
     const v = getPath(rules, path);
@@ -1752,6 +1773,7 @@ function legaView() {
       ${lg.mode === "h2h" ? `<div class="row"><button class="btn" data-act="gen-schedule">Genera calendario sfide</button><span class="muted" style="font-size:.85rem">Accoppia le squadre per ogni sera NBA dalla data di inizio. Rifallo se entra un nuovo amico.</span></div>
       <div class="row"><input type="date" id="po-start" style="width:auto" value="${(rules.playoffs || {}).start_date || ""}"><button class="btn" data-act="gen-playoffs">Avvia playoff da questa data</button><button class="btn" data-act="next-round">Turno successivo</button></div>` : ""}
     </section>` : ""}
+    ${W ? `<section class="card stack"><div class="label">Finestre di mercato (admin)</div>${winAdmin(W.open, W.next)}</section>` : ""}
     <section class="card stack"><div class="label">Regole ${adm ? "(modificabili)" : ""}</div>${rulesForm}
       ${adm ? `<button class="btn primary" data-act="save-rules">Salva regole</button><p class="muted" style="margin:0">I nuovi punteggi valgono dalle prossime giornate. Le giornate già calcolate non cambiano.</p>` : ""}</section>
     ${adm ? `<section class="card stack"><div class="label">Correzioni rosa (admin)</div>
