@@ -1113,6 +1113,19 @@ async function oggiView() {
       ${S.league.mode === "h2h" ? '<p class="muted">Nessuna sfida in calendario per questa giornata. L\'admin può generare il calendario in Lega.</p>' : ""}</section>`;
   }
 
+  // top e flop della giornata: punti fanta della nostra app (tabellino squadre, capitano ×2 compreso), solo chi ha giocato
+  const perf = scores.flatMap((sc0) => (sc0.detail || []).filter((x) => x.role !== "dnp" && x.role !== "bench").map((x) => ({ ...x, team: sc0.team_id }))).sort((a, b) => b.pts - a.pts);
+  const tops = perf.slice(0, 3), flops = perf.slice(3).slice(-3).reverse();
+  const tfRow = (r, good) => { const pl = P(r.id);
+    return `<div class="item">${avatar(pl)}<div class="grow" style="min-width:0"><div class="ellipsis" style="font-weight:700">${r.captain ? "★ " : ""}${esc(pl.name)}</div>
+      <div class="muted ellipsis" style="font-size:.8rem">${esc(pl.team_abbr || "")} · <span class="${r.team === S.sess.team_id ? "mine-name" : ""}">${esc(teamName(r.team))}</span>${r.captain ? " · capitano ×2" : ""}</div></div>
+      <span class="num" style="font-family:var(--display);font-weight:900;font-size:1.4rem;color:${good ? "var(--win)" : "var(--loss)"}">${r1(r.pts)}</span></div>`; };
+  const topFlop = perf.length ? `<section class="card"><div class="label">Top e flop della giornata</div>
+    <div class="grid2" style="grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px">
+      <div><div style="font-weight:800;color:var(--win);margin-bottom:4px">🔥 Top 3</div><div class="list">${tops.map((r) => tfRow(r, true)).join("")}</div></div>
+      ${flops.length ? `<div><div style="font-weight:800;color:var(--loss);margin-bottom:4px">🧊 Flop 3 <span class="muted" style="font-weight:500;font-size:.8rem">hanno giocato</span></div><div class="list">${flops.map((r) => tfRow(r, false)).join("")}</div></div>` : ""}
+    </div>${state !== "Finita" ? '<p class="muted" style="margin:8px 0 0;font-size:.85rem">Giornata non ancora finita: cambia durante le partite.</p>' : ""}</section>` : "";
+
   return head(fmtDay(d), state + (deadline && state === "Da giocare" ? ` · quintetti chiusi alle ${fmtTime(deadline)}` : "")) + installTip() + `
   <div class="stack">
     <div class="row between">
@@ -1121,6 +1134,7 @@ async function oggiView() {
       <button class="btn small" data-day="${next || ""}" ${next ? "" : "disabled"}>${next ? fmtDay(next) : ""} ›</button>
     </div>
     ${main}
+    ${topFlop}
     <section class="card"><div class="label">Partite NBA · orari italiani</div>
       ${games.length ? `<div class="list">${games.map((g) => `<div class="item"><span class="grow num"><b>${esc(g.away_abbr)}</b> ${g.state === "pre" ? "" : g.away_score} <span class="muted">@</span> <b>${esc(g.home_abbr)}</b> ${g.state === "pre" ? "" : g.home_score}</span><span class="muted">${g.state === "pre" ? fmtTime(g.start_time) : esc(g.status_detail || "")}</span></div>`).join("")}</div>` : '<div class="empty">Nessuna partita</div>'}
     </section>
