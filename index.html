@@ -1690,7 +1690,7 @@ function regoleView() {
       ${box("Rilasciare un giocatore", `<div class="rgrid">${tile(pct + "%", "della quotazione di oggi")}</div>
         <ul style="margin:8px 0 0;padding-left:18px;font-size:.9rem">${li("Il giocatore torna free agent e tu incassi il " + pct + "% della sua quotazione del giorno, non il prezzo pagato.")}${li(`Esempio: pagato ${paid}, oggi vale ${now_} → incassi <b>${back}</b>. Se invece oggi valesse 20, incasseresti ${Math.round(20 * pct / 100)}.`)}${li("Puoi rilasciare subito oppure solo se vinci una busta (lo indichi nella busta).")}</ul>`)}
       ${box("Comprare un free agent", `<div class="rgrid">${tile("busta", "segreta")}${tile("min", "= quotazione")}</div>
-        <ul style="margin:8px 0 0;padding-left:18px;font-size:.9rem">${li("Fai un'offerta segreta: nessuno la vede, puoi cambiarla o ritirarla fino alla chiusura.")}${li("Se la rosa è piena devi indicare chi rilasci in caso di vittoria.")}${li("Alla chiusura vince l'offerta più alta. A parità vince chi è più indietro in classifica.")}${li("Paghi quanto hai offerto; quella diventa la cifra pagata per quel giocatore.")}</ul>`)}
+        <ul style="margin:8px 0 0;padding-left:18px;font-size:.9rem">${li("Fai un'offerta segreta: il minimo è la quotazione del giocatore in quel momento, non di meno.")}${li("Nessuno vede la tua offerta: puoi cambiarla o ritirarla fino alla chiusura.")}${li("Se la rosa è piena devi indicare chi rilasci in caso di vittoria.")}${li("Alla chiusura vince l'offerta più alta. A parità vince chi è più indietro in classifica.")}${li("Paghi quanto hai offerto; quella diventa la cifra pagata per quel giocatore.")}</ul>`)}
       </div>`); })()}
   </div>`;
 }
