@@ -206,6 +206,62 @@ tr.cut td{border-top:2px dashed var(--accent)}
 .px{left:calc(50% - 54px);border:0;background:#fff;color:#121820!important;font:900 18px/1 var(--body)!important}
 .pc.empty .ph{border:2px dashed rgba(255,255,255,.8);background:rgba(0,0,0,.25);color:#fff;font-size:30px;font-weight:300;display:grid;place-items:center;box-shadow:none}
 .pc.empty .pcard{background:rgba(18,24,32,.7)}
+.luseg{display:flex;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:3px}
+.luseg button{flex:1;border:0;background:none;padding:9px 0;border-radius:9px;font:800 1rem var(--display);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);cursor:pointer}
+.luseg button.on{background:var(--board);color:var(--board-ink)}
+.lu-hint .hs-btn{display:inline-block;margin:6px auto 0;border:1px solid #FFB27A;background:none;color:#FFB27A;border-radius:999px;padding:4px 10px;font:800 .8rem var(--body);cursor:pointer}
+.rlist .bh{display:flex;justify-content:space-between;padding:12px 14px;border-bottom:1px solid #2A3340;font:800 12px var(--display);letter-spacing:.12em;color:#8C97A6}
+.rrow{display:flex;align-items:center;gap:10px;width:100%;padding:10px 12px;border:0;border-bottom:1px solid #2A3340;background:none;color:#F1F4F8;text-align:left;font:inherit;cursor:pointer}
+.rrow:active{background:#171C24}
+.rrow .ph{width:46px;height:46px;border-width:2px;margin:0;flex:none;box-shadow:none}
+.rrow .mid{flex:1;min-width:0;display:block}
+.rlist .nm,.psh .nm{display:block;font:800 17px var(--display);line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rlist .nm i,.psh .nm i{font-style:normal;font-size:10px;padding:1px 4px;border-radius:3px;margin-right:4px;vertical-align:2px;font-weight:800}
+.rlist i.bc,.psh i.bc{background:#6EA1FF;color:#08142c}.rlist i.fc,.psh i.fc{background:#FF9A5C;color:#2a1103}
+.rlist .meta,.psh .meta{display:block;font-size:.72rem;color:#8C97A6;font-weight:700}
+.ptag{font:800 10px var(--body);padding:1px 5px;border-radius:4px;margin-left:5px;vertical-align:2px}
+.ptag.o{background:#FF6B61;color:#2a0705}.ptag.d{background:#F2B84B;color:#2a1c03}
+.rrow .bars{display:flex;align-items:flex-end;gap:3px;height:30px;margin-top:5px}
+.rrow .bars b{width:9px;border-radius:2px 2px 0 0;background:#4a5768;display:block}
+.rrow .bars b.hi{background:#3DD68C}.rrow .bars b.lo{background:#FF6B61}.rrow .bars b.z{background:#2F3846}
+.rrow .avg{text-align:right;flex:none;display:block}
+.rrow .avg .v{display:block;font:900 26px/1 var(--display)}
+.rrow .avg small{display:block;font:800 9.5px var(--body);color:#8C97A6;letter-spacing:.06em}
+.rrow .avg .t{display:block;font:800 12px var(--display);letter-spacing:.03em;margin-top:2px}
+.rlist .note,.psh .note{font-size:.76rem;color:#8C97A6;padding:10px 12px;line-height:1.35}
+#psheet{position:fixed;inset:0;z-index:100;background:rgba(5,8,12,.6);display:none;backdrop-filter:blur(2px)}
+#psheet.open{display:block}
+.psh{position:absolute;left:0;right:0;bottom:0;top:max(24px,env(safe-area-inset-top,0px));max-width:560px;margin:0 auto;background:#0E1116;color:#F1F4F8;border-radius:18px 18px 0 0;overflow-y:auto;-webkit-overflow-scrolling:touch;animation:pshUp .22s ease-out}
+@keyframes pshUp{from{transform:translateY(40px);opacity:0}}
+.psh-in{padding-bottom:calc(20px + env(safe-area-inset-bottom,0px));position:relative}
+.psh-x{position:sticky;top:10px;float:right;margin:10px 10px 0 0;width:38px;height:38px;border-radius:50%;border:0;background:#1F2630;color:#fff;font-size:18px;z-index:2;cursor:pointer}
+.psh .hero{display:flex;gap:12px;align-items:center;padding:16px 14px 12px}
+.psh .hero .ph{width:76px;height:76px;border:3px solid #fff;border-radius:50%;overflow:hidden;flex:none;background:#121820}
+.psh .hero .ph img{width:100%;height:100%;object-fit:cover;object-position:50% 12%}
+.psh .injl{margin:0 12px 10px;padding:8px 10px;border-radius:10px;background:rgba(255,107,97,.12);font-size:.82rem;color:#FFB3AD}
+.psh .kpi{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;padding:0 12px 4px}
+.psh .kpi div{background:#171C24;border:1px solid #2A3340;border-radius:10px;padding:7px 2px;text-align:center}
+.psh .kpi b{display:block;font:900 21px/1.1 var(--display)}
+.psh .kpi small{font:800 9.5px var(--body);color:#8C97A6;letter-spacing:.05em}
+.psh .ttl{font:800 11.5px var(--display);letter-spacing:.12em;color:#8C97A6;margin:16px 12px 6px}
+.psh .chart{padding:0 6px}.psh .chart svg{width:100%;height:auto;display:block}
+.psh .stackb{display:flex;height:22px;border-radius:6px;overflow:hidden;margin:0 12px}
+.psh .stackb div{display:grid;place-items:center;font:800 11px var(--display);color:#121820}
+.psh .leg2{display:flex;flex-wrap:wrap;gap:8px;padding:6px 12px 0;font-size:.72rem;font-weight:700;color:#8C97A6}
+.psh .leg2 i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:3px;vertical-align:-1px}
+.psh .glog{margin:0 12px;border-top:1px solid #2A3340}
+.psh .glog details{border-bottom:1px solid #2A3340}
+.psh .glog summary{display:grid;grid-template-columns:76px 1fr 44px;gap:8px;align-items:center;padding:9px 0;cursor:pointer;list-style:none}
+.psh .glog summary::-webkit-details-marker{display:none}
+.psh .glog .d{font:800 13px var(--display);color:#8C97A6}
+.psh .glog .s{font-size:.78rem;color:#C9D1DB;font-weight:600}
+.psh .glog .f{text-align:right;font:900 20px var(--display)}
+.psh .gt{display:inline-block;font:800 9.5px var(--body);letter-spacing:.04em;padding:1px 5px;border-radius:4px;background:#2A3340;color:#C9D1DB;margin-left:2px}
+.psh .gt.c{background:#FFD23F;color:#121820}
+.psh .brk{display:flex;flex-wrap:wrap;gap:5px;padding:0 0 10px}
+.psh .brk span{background:#1F2630;border-radius:7px;padding:4px 7px;font-size:.76rem;font-weight:700}
+.psh .brk span b{font-family:var(--display);font-size:15px}
+.psh .brk .tot{background:#FF7A2E;color:#1a0d05}
 .lu-coach{display:flex;align-items:center;gap:12px;padding:12px 14px;background:#171C24;border-bottom:1px solid #2A3340}
 .lu-coach.on{background:linear-gradient(90deg,rgba(61,214,140,.18),#171C24)}
 .lu-coach .tx{flex:1;min-width:0}.lu-coach b{display:block;font:800 17px var(--display);letter-spacing:.02em}
@@ -1150,10 +1206,120 @@ function detailBox(s, teamId) {
 }
 
 /* ---------- QUINTETTO ---------- */
+/* ---------- ROSTER: valutazioni serata per serata + scheda giocatore ---------- */
+const STAT_LBL = [["pts", "punti"], ["reb", "rimbalzi"], ["ast", "assist"], ["stl", "recuperi"], ["blk", "stoppate"], ["tov", "palle perse"], ["fg3m", "triple"], ["fg_miss", "tiri sbagliati"], ["ft_miss", "liberi sbagliati"], ["pf", "falli"]];
+const played = (s) => s && +s.min > 0 && !s.dnp;
+function statsOf(s) { return { ...s, fg_miss: (+s.fga || 0) - (+s.fgm || 0), ft_miss: (+s.fta || 0) - (+s.ftm || 0) }; }
+function bonusOf(s) {
+  const c = ["pts", "reb", "ast", "stl", "blk"].filter((k) => +s[k] >= 10).length, b = R().bonus || {};
+  return c >= 3 ? ["tripla doppia", +b.triple_double || 0] : c === 2 ? ["doppia doppia", +b.double_double || 0] : null;
+}
+function gameFp(s) { if (!played(s)) return null; const x = statsOf(s), bo = bonusOf(s); return fpFrom(x) + (bo ? bo[1] : 0); }
+function breakdown(s) {
+  const sc = R().scoring || {}, x = statsOf(s), bo = bonusOf(s);
+  const parts = STAT_LBL.filter(([k]) => +sc[k] && +x[k]).map(([k, l]) => `<span>${x[k]} ${l} <b>${+sc[k] * x[k] > 0 ? "+" : ""}${r1(+sc[k] * x[k])}</b></span>`);
+  if (bo && bo[1]) parts.push(`<span>${bo[0]} <b>+${bo[1]}</b></span>`);
+  return parts.join("") + `<span class="tot">= <b>${r1(gameFp(s))}</b></span>`;
+}
+async function loadRS(force = false) {
+  const ids = rosterOf(S.sess.team_id).map((r) => r.player_id);
+  const key = ids.slice().sort().join(",");
+  if (!force && S.rs && S.rs.key === key && Date.now() - S.rs.at < 180000) return S.rs;
+  if (!loadRS.start) { const g = await q(sb.from("games").select("game_date").eq("season_type", 2).order("game_date").limit(1)); loadRS.start = g[0]?.game_date || etToday(); }
+  const [st, hi, ts] = await Promise.all([
+    ids.length ? q(sb.from("player_stats").select("game_id,player_id,game_date,min,pts,reb,ast,stl,blk,tov,fgm,fga,fg3m,ftm,fta,pf,dnp").in("player_id", ids).gte("game_date", loadRS.start).order("game_date")) : [],
+    ids.length ? q(sb.from("player_value_history").select("player_id,day,value").eq("league_id", S.sess.league_id).in("player_id", ids).order("day")) : [],
+    q(sb.from("team_scores").select("game_date,detail").eq("team_id", S.sess.team_id).gte("game_date", loadRS.start)),
+  ]);
+  const stats = new Map(ids.map((id) => [id, []])), hist = new Map(ids.map((id) => [id, []])), mine = new Map();
+  for (const s of st) stats.get(s.player_id)?.push(s);
+  for (const h of hi) hist.get(h.player_id)?.push(h);
+  for (const t of ts) mine.set(t.game_date, new Map((t.detail || []).map((x) => [x.id, x])));
+  S.rs = { key, at: Date.now(), stats, hist, mine };
+  return S.rs;
+}
+function pSummary(id) {
+  const g = (S.rs?.stats.get(id) || []).map((s) => ({ s, fp: gameFp(s) }));
+  const pl = g.filter((x) => x.fp != null), avg = pl.length ? pl.reduce((a, x) => a + x.fp, 0) / pl.length : null;
+  const l3 = pl.slice(-3), avg3 = l3.length ? l3.reduce((a, x) => a + x.fp, 0) / l3.length : null;
+  return { g, pl, avg, avg3, tr: avg != null && pl.length >= 4 ? avg3 - avg : null };
+}
+const trendTag = (tr) => tr == null ? `<span style="color:#8C97A6">—</span>` : Math.abs(tr) < 3 ? `<span style="color:#8C97A6">= stabile</span>` : tr > 0 ? `<span style="color:#3DD68C">▲ +${r1(tr)}</span>` : `<span style="color:#FF6B61">▼ ${r1(tr)}</span>`;
+const injTag = (p) => p.injury_status ? `<span class="ptag ${/out|suspen/i.test(p.injury_status) ? "o" : "d"}">${/out|suspen/i.test(p.injury_status) ? "OUT" : "DUBBIO"}</span>` : "";
+const rChg = (id) => { const c = S.chg?.get(id); if (!c || !c.d7) return ""; return c.d7 > 0 ? `<span style="color:#3DD68C">▲${c.d7}</span>` : `<span style="color:#FF6B61">▼${-c.d7}</span>`; };
+async function rosterListView(mine) {
+  await loadRS();
+  const rows = mine.map((p) => ({ p, ...pSummary(p.id) })).sort((a, b) => (b.avg ?? -1) - (a.avg ?? -1));
+  return `<section class="lu rlist"><div class="bh"><span>ROSTER · VALUTAZIONE PER SERATA</span><span>ULTIME 8</span></div>
+    ${rows.map(({ p, g, pl, avg, tr }) => { const last = g.slice(-8);
+      return `<button class="rrow" data-pinfo="${p.id}"><span class="ph" style="border-color:${teamCol(p)}">${headImg(p, 120)}</span>
+        <span class="mid"><span class="nm"><i class="${(p.court || "").toLowerCase()}">${p.court}</i>${esc(shortName(p.name))}${injTag(p)}</span>
+        <span class="meta">${esc(p.team_abbr || "")} · ${pl.length} partit${pl.length === 1 ? "a" : "e"} · quot. ${val(p.id)} ${rChg(p.id)}</span>
+        <span class="bars">${last.map((x) => `<b class="${x.fp == null ? "z" : avg != null && x.fp >= avg + 8 ? "hi" : avg != null && x.fp <= avg - 8 ? "lo" : ""}" style="height:${x.fp == null ? 3 : Math.max(3, Math.min(30, (x.fp / 90) * 30))}px"></b>`).join("") || '<small style="color:#8C97A6">nessuna partita ancora</small>'}</span></span>
+        <span class="avg"><span class="v">${avg == null ? "–" : r1(avg)}</span><small>MEDIA</small><span class="t">${trendTag(tr)}</span></span></button>`; }).join("")}
+    <div class="note">Tocca un giocatore per la scheda completa: grafico, come è nato ogni voto e quotazione. Barre verdi = sopra la sua media, rosse = sotto, grigie = non ha giocato.</div></section>`;
+}
+function lineSvg(pts, { h = 130, avg = null, avgLbl = "media", color = "#FF7A2E", dots = true, fmt = (v) => Math.round(v) } = {}) {
+  if (!pts.length) return "";
+  const W = 340, pad = 20, ys = pts.map((p) => p.y).filter((y) => y != null);
+  let mn = Math.min(...ys, avg ?? Infinity), mx = Math.max(...ys, avg ?? -Infinity);
+  if (mx - mn < 10) { mx += 5; mn -= 5; }
+  const X = (i) => pts.length === 1 ? W / 2 : pad + (i * (W - 2 * pad)) / (pts.length - 1), Y = (v) => h - 18 - ((v - mn) / (mx - mn)) * (h - 36);
+  const line = pts.map((p, i) => (p.y == null ? null : `${X(i)},${Y(p.y)}`)).filter(Boolean).join(" ");
+  const every = Math.ceil(pts.length / 9);
+  return `<svg viewBox="0 0 ${W} ${h}" role="img">${avg != null ? `<line x1="${pad}" x2="${W - pad}" y1="${Y(avg)}" y2="${Y(avg)}" stroke="#FFD23F" stroke-dasharray="4 4" stroke-width="1.5"/><text x="${W - pad}" y="${Y(avg) - 5}" fill="#FFD23F" font-size="10" font-weight="800" text-anchor="end">${avgLbl} ${r1(avg)}</text>` : ""}
+    <polyline points="${line}" fill="none" stroke="${color}" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+    ${pts.map((p, i) => (p.y == null ? `<circle cx="${X(i)}" cy="${h - 18}" r="3" fill="#3a4656"/>` : dots || i === pts.length - 1 || i === 0 ? `<circle cx="${X(i)}" cy="${Y(p.y)}" r="${i === pts.length - 1 ? 5.5 : 4}" fill="${avg == null ? color : p.y >= avg ? "#3DD68C" : "#FF6B61"}" stroke="#0E1116" stroke-width="2"/>${dots || i === pts.length - 1 || i === 0 ? `<text x="${X(i)}" y="${Y(p.y) - 9}" fill="#C9D1DB" font-size="10" font-weight="800" text-anchor="middle">${fmt(p.y)}</text>` : ""}` : "")).join("")}
+    ${pts.map((p, i) => (i % every === 0 || i === pts.length - 1 ? `<text x="${X(i)}" y="${h - 3}" fill="#8C97A6" font-size="9" font-weight="700" text-anchor="middle">${p.x}</text>` : "")).join("")}</svg>`;
+}
+async function openSheet(id) {
+  const p = P(id); if (!p) return;
+  let el = $("#psheet");
+  if (!el) { el = document.createElement("div"); el.id = "psheet"; document.body.appendChild(el);
+    el.addEventListener("click", (e) => { if (e.target === el || e.target.closest("[data-psclose]")) closeSheet(); }); }
+  el.innerHTML = `<div class="psh"><div class="psh-in" style="padding:40px;text-align:center;color:#8C97A6">Carico…</div></div>`;
+  el.classList.add("open"); document.body.style.overflow = "hidden";
+  try { await loadRS(); } catch (e) { el.querySelector(".psh-in").textContent = "Dati non disponibili ora"; return; }
+  const { g, pl, avg, avg3, tr } = pSummary(id), hist = S.rs.hist.get(id) || [];
+  const best = pl.length ? Math.max(...pl.map((x) => x.fp)) : null, worst = pl.length ? Math.min(...pl.map((x) => x.fp)) : null;
+  const dd = (d) => new Date(d + "T12:00:00Z").getUTCDate();
+  const sc = R().scoring || {}, cols = { pts: "#FF7A2E", reb: "#6EA1FF", ast: "#C9B8FF", stl: "#3DD68C", blk: "#FFD23F", fg3m: "#7DE3F4" };
+  const contrib = Object.keys(cols).filter((k) => +sc[k] > 0).map((k) => [k, pl.reduce((a, x) => a + (+x.s[k] || 0) * +sc[k], 0)]).filter(([, v]) => v > 0);
+  const ctot = contrib.reduce((a, [, v]) => a + v, 0) || 1;
+  const lbl = Object.fromEntries(STAT_LBL);
+  const c7 = S.chg?.get(id);
+  const v0 = hist[0]?.value, vN = val(id);
+  el.innerHTML = `<div class="psh" role="dialog" aria-label="Scheda ${esc(p.name)}"><div class="psh-in">
+    <button class="psh-x" data-psclose aria-label="Chiudi">✕</button>
+    <div class="hero"><span class="ph" style="border-color:${teamCol(p)}">${headImg(p, 200)}</span><div style="min-width:0">
+      <div class="nm" style="font-size:24px"><i class="${(p.court || "").toLowerCase()}">${p.court}</i>${esc(p.name)}${injTag(p)}</div>
+      <div class="meta">${esc(p.team_abbr || "")} · ${pl.length} partite giocate</div>
+      <div style="margin-top:4px;font-weight:800;font-size:.9rem">${trendTag(tr)} <span class="meta">ultime 3 vs media</span></div></div></div>
+    ${p.injury_status ? `<div class="injl">${injLine(p) || esc(p.injury_status)}</div>` : ""}
+    <div class="kpi"><div><b>${avg == null ? "–" : r1(avg)}</b><small>MEDIA</small></div><div><b style="color:#3DD68C">${best == null ? "–" : r1(best)}</b><small>MIGLIORE</small></div><div><b style="color:#FF6B61">${worst == null ? "–" : r1(worst)}</b><small>PEGGIORE</small></div><div><b>${avg3 == null ? "–" : r1(avg3)}</b><small>ULTIME 3</small></div></div>
+    <div class="ttl">VALUTAZIONE SERATA PER SERATA</div>
+    ${g.length ? `<div class="chart">${lineSvg(g.map((x) => ({ x: dd(x.s.game_date), y: x.fp })), { avg })}</div>` : '<div class="note">Nessuna partita giocata in stagione.</div>'}
+    <div class="ttl">QUOTAZIONE <span style="float:right;color:#F1F4F8">${vN} cr ${c7?.d7 ? `<span style="color:${c7.d7 > 0 ? "#3DD68C" : "#FF6B61"}">${c7.d7 > 0 ? "▲" : "▼"}${Math.abs(c7.d7)} in 7 gg</span>` : ""}</span></div>
+    ${hist.length >= 2 ? `<div class="chart">${lineSvg(hist.map((h) => ({ x: dd(h.day), y: h.value })), { color: "#6EA1FF", dots: hist.length <= 12, h: 110 })}</div><div class="note" style="padding-top:0">Dal ${fmtDay(hist[0].day)}: ${v0} → ${vN} cr. La quotazione si aggiorna ogni mattina in base alle medie.</div>` : '<div class="note">Lo storico della quotazione si riempie giorno per giorno.</div>'}
+    ${contrib.length ? `<div class="ttl">DA DOVE ARRIVANO I SUOI PUNTI</div><div class="stackb">${contrib.map(([k, v]) => { const pc = Math.round((v / ctot) * 100); return `<div style="width:${pc}%;background:${cols[k]}">${pc >= 9 ? pc + "%" : ""}</div>`; }).join("")}</div>
+      <div class="leg2">${contrib.map(([k]) => `<span><i style="background:${cols[k]}"></i>${lbl[k]}</span>`).join("")}</div>` : ""}
+    <div class="ttl">PARTITA PER PARTITA <span style="float:right;font-weight:700;letter-spacing:0">tocca per il dettaglio</span></div>
+    <div class="glog">${[...g].reverse().map(({ s, fp }) => { const m = S.rs.mine.get(s.game_date)?.get(id);
+      const tag = m ? (m.captain ? '<span class="gt c">★ CAPITANO</span>' : m.role === "sub" ? '<span class="gt">ENTRATO</span>' : m.role === "dnp" ? "" : '<span class="gt">IN CAMPO</span>') : "";
+      return `<details><summary><span class="d">${fmtDay(s.game_date)}</span><span class="s">${fp == null ? "non ha giocato" : `${s.pts} pt · ${s.reb} rb · ${s.ast} as · ${s.min}'`} ${tag}</span><span class="f" style="color:${fp == null ? "#8C97A6" : avg != null && fp >= avg ? "#3DD68C" : "#FF6B61"}">${fp == null ? "–" : r1(fp)}</span></summary>
+        ${fp == null ? "" : `<div class="brk">${breakdown(s)}</div>${m && m.role !== "dnp" ? `<div class="note" style="padding:6px 0 0">Per la tua squadra ha fatto <b>${r1(m.pts)}</b> punti${m.captain ? " (capitano ×" + ((R().captain || {}).multiplier || 2) + ")" : ""}.</div>` : ""}`}</details>`; }).join("") || '<div class="note">Ancora nessuna partita.</div>'}</div>
+    <div class="note">I punti di ogni partita sono calcolati con le regole della tua lega.</div>
+  </div></div>`;
+}
+function closeSheet() { const el = $("#psheet"); if (el) { el.classList.remove("open"); el.innerHTML = ""; } document.body.style.overflow = ""; }
+document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeSheet(); });
+
 async function formazioneView() {
   const ro = R().roster || {};
   const mine = rosterOf(S.sess.team_id).map((r) => ({ ...P(r.player_id), price: r.price }));
   if (!mine.length) return head("Quintetto") + `<section class="card"><div class="empty">La tua rosa è vuota. I giocatori arrivano dall'asta.</div></section>`;
+  const segLu = `<div class="luseg"><button class="${S.luView !== "roster" ? "on" : ""}" data-luview="campo">Campo</button><button class="${S.luView === "roster" ? "on" : ""}" data-luview="roster">Roster</button></div>`;
+  if (S.luView === "roster") return head("Quintetto", "Come stanno andando i tuoi giocatori") + `<div class="stack">${segLu}${await rosterListView(mine)}</div>`;
   const days = await gameDays(), today = etToday();
   const upcoming = days.filter((d) => d >= today).slice(0, 10);
   if (!S.lineupDate || !upcoming.includes(S.lineupDate)) { S.lineupDate = upcoming[0]; S.lineup = null; }
@@ -1224,7 +1390,7 @@ async function formazioneView() {
       ${noEdit || !rest.length ? "" : `<div class="add"><span>Aggiungi:</span>${rest.map((p) => `<button data-cap="${p.id}">+ ${esc(shortName(p.name))}</button>`).join("")}</div>`}</div>`;
   };
   const warn = !okCount ? `Mancano ${N - L.starters.length} titolar${N - L.starters.length > 1 ? "i" : "e"}` : !okMix ? `Servono almeno ${ro.min_bc_start} BC e ${ro.min_fc_start} FC` : "";
-  const hint = locked ? "🔒 Giornata iniziata: quintetto bloccato" : auto ? "🤖 Ci pensa il Secondo Allenatore: aggiorna quintetto e capitani fino all'inizio della serata" : !sel && !warn && L.dirty ? "Modifiche non salvate: salva in fondo ↓" : sel ? (L.starters.includes(sel) ? "Ora tocca un panchinaro per farlo entrare al suo posto" : "Ora tocca il titolare da far uscire o un posto libero") : warn;
+  const hint = locked ? "🔒 Giornata iniziata: tocca un giocatore per la sua scheda" : auto ? "🤖 Ci pensa il Secondo Allenatore · tocca un giocatore per la sua scheda" : !sel && !warn && L.dirty ? "Modifiche non salvate: salva in fondo ↓" : sel ? (L.starters.includes(sel) ? "Ora tocca un panchinaro per farlo entrare al suo posto" : "Ora tocca il titolare da far uscire o un posto libero") : warn;
   const court = `<section class="lu">
     <div class="lu-coach ${auto ? "on" : ""}"><div class="tx"><b>🤖 Secondo Allenatore</b><small>${auto ? "Attivo: sceglie lui quintetto e capitani ogni sera" : "Se lo accendi sceglie lui quintetto e capitani ogni sera"}</small></div>
       <button class="sw ${auto ? "on" : ""}" data-act="auto-coach" role="switch" aria-checked="${auto}" aria-label="Secondo Allenatore"><i></i></button></div>
@@ -1233,7 +1399,7 @@ async function formazioneView() {
       <div><b class="${(locked ? liveCap : capNow) ? "y" : ""}">${cap.enabled ? ((locked ? liveCap : capNow) ? "★ " + esc(shortName(P(locked ? liveCap : capNow).name)) : "—") : "no"}</b><small>capitano ×${mult}</small></div>
       <div><b class="${okCount && okMix ? "g" : "r"}">${playing}/${N}</b><small>giocano</small></div>
     </div>
-    ${hint ? `<div class="lu-hint ${warn && !sel && !locked ? "bad" : ""}">${hint}</div>` : ""}
+    ${hint ? `<div class="lu-hint ${warn && !sel && !locked ? "bad" : ""}">${hint}${sel ? ` <button class="hs-btn" data-pinfo="${sel}">📊 Scheda ${esc(shortName(P(sel).name))}</button>` : ""}</div>` : ""}
     <div class="lu-court"><div class="lu-floor"><svg viewBox="0 0 100 100" preserveAspectRatio="none"><g fill="none" stroke="#fff" stroke-opacity=".85" stroke-width=".5"><rect x="4" y="2" width="92" height="120"/><rect x="34" y="2" width="32" height="34"/><path d="M34 36 a16 12 0 0 0 32 0"/><path d="M12 2 V18 a38 34 0 0 0 76 0 V2"/><circle cx="50" cy="8" r="2.4"/></g><rect x="34" y="2" width="32" height="34" fill="#E35A12" fill-opacity=".35"/></svg></div>
       ${Array.from({ length: N }, (_, i) => ordered[i] ? card(ordered[i], i) : emptySlot(i)).join("")}
     </div>
@@ -1252,6 +1418,7 @@ async function formazioneView() {
   </section>` : "";
   return head("Quintetto", d ? `${fmtDay(d)}${deadline ? (locked ? " · chiuso" : " · chiude alle " + fmtTime(deadline)) : ""}` : "Nessuna partita in programma") + `
   <div class="stack">
+    ${segLu}
     ${injBox}
     <div class="daypick">${upcoming.map((x) => `<button class="btn small ${x === d ? "primary" : ""}" data-lday="${x}">${fmtDay(x)}</button>`).join("")}</div>
     ${L.savedFor && L.savedFor !== d ? `<p class="muted" style="margin:0">Ti mostro il quintetto salvato per ${fmtDay(L.savedFor)}: se non cambi nulla resta valido anche oggi, capitani compresi.</p>` : ""}
@@ -1848,6 +2015,9 @@ function bindCommon() {
         }
         L.dirty = true; return render();
       }
+      if (d.luview) { S.luView = d.luview; S.luSel = null; return render(); }
+      if (d.pinfo) return openSheet(d.pinfo);
+      if (d.luPick && S.tab === "formazione" && S.luRO) return openSheet(d.luPick);
       if ((d.luPick || d.luOut || d.luSlot || d.cap || d.capmv) && S.tab === "formazione" && S.luRO) return toast(me()?.auto_coach ? "Ci pensa il Secondo Allenatore: spegnilo per decidere tu" : "Giornata iniziata: quintetto bloccato");
       if (d.luPick || d.luOut || d.luSlot) {
         const L = S.lineup; if (!L) return;
